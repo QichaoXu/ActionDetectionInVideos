@@ -78,17 +78,25 @@ class Image_loader(data.Dataset):
 
 
 class DetectionLoader:
-    def __init__(self, dataset, batchSize=4, queueSize=256):
+    def __init__(self, dataset, det_model=None, batchSize=4, queueSize=256):
         # initialize the file video stream along with the boolean
         # used to indicate if the thread should be stopped or not
-        self.det_model = Darknet("yolo/cfg/yolov3.cfg")
-        self.det_model.load_weights('models/yolo/yolov3.weights')
-        self.det_model.net_info['height'] = opt.inp_dim
-        self.det_inp_dim = int(self.det_model.net_info['height'])
-        assert self.det_inp_dim % 32 == 0
-        assert self.det_inp_dim > 32
-        self.det_model.cuda()
-        self.det_model.eval()
+        if det_model is None:
+            self.det_model = Darknet("yolo/cfg/yolov3.cfg")
+            self.det_model.load_weights('models/yolo/yolov3.weights')
+            self.det_model.net_info['height'] = opt.inp_dim
+            self.det_inp_dim = int(self.det_model.net_info['height'])
+            assert self.det_inp_dim % 32 == 0
+            assert self.det_inp_dim > 32
+            self.det_model.cuda()
+            self.det_model.eval()
+        else:
+            self.det_model = det_model
+            self.det_model.net_info['height'] = opt.inp_dim
+            self.det_inp_dim = int(self.det_model.net_info['height'])
+            assert self.det_inp_dim % 32 == 0
+            assert self.det_inp_dim > 32
+            print('YOLO model loaded')
 
         self.stopped = False
         self.dataset = dataset

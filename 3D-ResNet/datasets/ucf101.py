@@ -170,8 +170,6 @@ class UCF101(data.Dataset):
         self.target_transform = target_transform
         self.loader = get_loader()
 
-        # print(self.data)
-
     def __getitem__(self, index):
         """
         Args:
@@ -193,7 +191,7 @@ class UCF101(data.Dataset):
         target = self.data[index]
         if self.target_transform is not None:
             target = self.target_transform(target)
-        
+
         return clip, target
 
     def __len__(self):

@@ -24,18 +24,17 @@ import test
 
 if __name__ == '__main__':
 
-
     opt = parse_opts()
 
-    base_folder = '/media/qcxu/qcxuDisk/Dataset/scratch_dataset'
-    opt.video_path = os.path.join(base_folder, 'hand')
-    opt.annotation_path = os.path.join(base_folder, 'TrainTestlist/ucf101_01.json')
+    base_folder = '/media/qcxu/qcxuDisk/Dataset/scratch_dataset/videos/Video_11'
+    opt.video_path = os.path.join(base_folder, 'C3D_clips')
+    opt.annotation_path = os.path.join(base_folder, 'ucf101_01.json')
+    opt.result_path = base_folder
 
     opt.root_path = './data'
-    opt.result_path = os.path.join(opt.root_path, 'results')
     opt.resume_path = os.path.join(opt.root_path, 'results-scratch-1/save_200.pth')
     opt.pretrain_path = os.path.join(opt.root_path, 'models/resnet-18-kinetics.pth')
-        
+
     opt.dataset = 'ucf101'
     opt.n_classes = 400
     opt.n_finetune_classes = 3
@@ -43,7 +42,8 @@ if __name__ == '__main__':
     opt.model = 'resnet'
     opt.model_depth = 18
     opt.resnet_shortcut = 'A'
-    opt.batch_size = 16
+    opt.sample_duration = 45
+    opt.batch_size = 1
     opt.n_threads = 1
     opt.checkpoint = 5
 
