@@ -202,8 +202,8 @@ class skeleton_tools:
                 cor_x, cor_y = int(kp_preds_h[-2]), int(kp_preds_h[-1])
 
 
-                if result_labels[h][0] != 'others':#result_labels[h][1] > 0.9 and 
-                    cv2.putText(img, result_labels[h][0]+':{:03f}'.format(result_labels[h][1]), (int(cor_x), int(cor_y)), cv2.FONT_HERSHEY_COMPLEX, 1, (0,0,255), 2)
+                if result_labels[h][0] != 'others' and result_labels[h][1] > 0.75: 
+                    cv2.putText(img, result_labels[h][0]+':{:.3f}'.format(result_labels[h][1]), (int(cor_x), int(cor_y)), cv2.FONT_HERSHEY_COMPLEX, 1, (0,0,255), 2)
 
                     part_line = {}
                     for n in range(len(kp_scores_h)):
@@ -261,7 +261,7 @@ class skeleton_tools:
                     if (min_dis > dis):
                         min_dis = dis
                         opt_id = j
-            if min_dis > 5000:
+            if min_dis > 500:
                 h1_map += [n_new]
                 n_new += 1
             else:
@@ -271,6 +271,8 @@ class skeleton_tools:
         return h1_map
 
     def __validate_skeletons(self, kp_preds_all, kp_scores_all, kp_maps_all, is_labeled=False):
+
+        return kp_preds_all, kp_scores_all
         
         # get number of valid humans from list of frames
         num_valid_human = 1000
@@ -403,7 +405,10 @@ class skeleton_tools:
 
             if is_save:
 
-                vis_out_folder = os.path.join(skeleton_folder, 'vis')
+                if result_labels is None:
+                    vis_out_folder = os.path.join(skeleton_folder, 'vis')
+                else:
+                    vis_out_folder = os.path.join(skeleton_folder, 'res')
                 if not os.path.exists(vis_out_folder):
                     os.makedirs(vis_out_folder)
 

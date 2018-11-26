@@ -26,10 +26,11 @@ if __name__ == '__main__':
 
     opt = parse_opts()
 
-    base_folder = '/media/qcxu/qcxuDisk/Dataset/scratch_dataset/videos/Video_11'
-    opt.video_path = os.path.join(base_folder, 'C3D_clips')
-    opt.annotation_path = os.path.join(base_folder, 'ucf101_01.json')
-    opt.result_path = base_folder
+    # opt.base_folder = '/media/qcxu/qcxuDisk/Dataset/scratch_dataset/videos/Video_11'
+    
+    opt.video_path = os.path.join(opt.base_folder, 'C3D_clips')
+    opt.annotation_path = os.path.join(opt.base_folder, 'ucf101_01.json')
+    opt.result_path = opt.base_folder
 
     opt.root_path = './data'
     opt.resume_path = os.path.join(opt.root_path, 'results-scratch-1/save_200.pth')

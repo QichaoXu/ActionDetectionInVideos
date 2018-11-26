@@ -4,6 +4,11 @@ import argparse
 def parse_opts():
     parser = argparse.ArgumentParser()
     parser.add_argument(
+        '--base_folder',
+        default='/root/data/ActivityNet',
+        type=str,
+        help='base_folder')
+    parser.add_argument(
         '--root_path',
         default='/root/data/ActivityNet',
         type=str,
