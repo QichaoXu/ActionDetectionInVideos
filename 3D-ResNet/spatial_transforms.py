@@ -121,6 +121,61 @@ class Normalize(object):
         pass
 
 
+class HardScale(object):
+    """Rescale the input PIL.Image to the given size.
+    Args:
+        size (sequence or int): Desired output size. If size is a sequence like
+            (w, h), output size will be matched to this. If size is an int,
+            image will be rescale to (size, size). If size is an int,
+            larger edge of the image will be matched to this number.. The two 
+            vacant sides will be filled with zero.
+        interpolation (int, optional): Desired interpolation. Default is
+            ``PIL.Image.BILINEAR``
+    """
+
+    def __init__(self, size, interpolation=Image.BILINEAR):
+        assert isinstance(size, int) or (isinstance(size, collections.Iterable) and len(size) == 2)
+        self.size = size
+        self.interpolation = interpolation
+
+    def __call__(self, img):
+        """
+        Args:
+            img (PIL.Image): Image to be scaled.
+        Returns:
+            PIL.Image: Rescaled image.
+        """
+        if isinstance(self.size, int):
+            w, h = img.size
+            if w == self.size and h == self.size:
+                return img
+            if w < h:
+                oh = self.size
+                ow = int(self.size * w / h)
+                if ow % 2 != 0:
+                    ow += 1
+                img = img.resize((ow, oh), self.interpolation)
+                side_ow = (oh - ow) // 2
+                target = Image.new(img.mode, (self.size, self.size))
+                target.paste(img, (side_ow, 0, side_ow+ow, self.size))
+                return target
+            else:
+                ow = self.size
+                oh = int(self.size * h / w)
+                if oh % 2 != 0:
+                    oh += 1
+                img = img.resize((ow, oh), self.interpolation)
+                side_oh = (ow - oh) // 2
+                target = Image.new(img.mode, (self.size, self.size))
+                target.paste(img, (0, side_oh, self.size, side_oh+oh))
+                return target
+        else:
+            return img.resize(self.size, self.interpolation)
+
+    def randomize_parameters(self):
+        pass
+
+
 class Scale(object):
     """Rescale the input PIL.Image to the given size.
     Args:
@@ -134,9 +189,7 @@ class Scale(object):
     """
 
     def __init__(self, size, interpolation=Image.BILINEAR):
-        assert isinstance(size,
-                          int) or (isinstance(size, collections.Iterable) and
-                                   len(size) == 2)
+        assert isinstance(size, int) or (isinstance(size, collections.Iterable) and len(size) == 2)
         self.size = size
         self.interpolation = interpolation
 

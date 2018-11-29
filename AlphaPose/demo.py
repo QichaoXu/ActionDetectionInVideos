@@ -65,7 +65,7 @@ if __name__ == "__main__":
 
     # Init data writer
     writer = DataWriter(args.save_video).start()
-    time.sleep(10)
+    # time.sleep(10)
     data_len = dataset.__len__()
     im_names_desc = tqdm(range(data_len))
     for i in im_names_desc:

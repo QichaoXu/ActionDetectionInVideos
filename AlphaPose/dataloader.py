@@ -604,6 +604,8 @@ class DataWriter:
                         hm_data, pt1, pt2, opt.inputResH, opt.inputResW, opt.outputResH, opt.outputResW)
 
                     result = pose_nms(boxes, scores, preds_img, preds_scores)
+                    if len(result) == 0:
+                        result = None
                     result = {
                         'imgname': im_name,
                         'result': result

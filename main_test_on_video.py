@@ -7,11 +7,12 @@ from torch import nn
 from torch import optim
 from torch.optim import lr_scheduler
 
+import _init_paths
 from opts import parse_opts
 from model import generate_model
 from mean import get_mean, get_std
 from spatial_transforms import (
-    Compose, Normalize, Scale, CenterCrop, CornerCrop, MultiScaleCornerCrop,
+    Compose, Normalize, HardScale, Scale, CenterCrop, CornerCrop, MultiScaleCornerCrop,
     MultiScaleRandomCrop, RandomHorizontalFlip, ToTensor)
 from temporal_transforms import LoopPadding, TemporalRandomCrop
 from target_transforms import ClassLabel, VideoID
@@ -25,15 +26,13 @@ import test
 if __name__ == '__main__':
 
     opt = parse_opts()
-
-    # opt.base_folder = '/media/qcxu/qcxuDisk/Dataset/scratch_dataset/videos/Video_11'
     
     opt.video_path = os.path.join(opt.base_folder, 'C3D_clips')
     opt.annotation_path = os.path.join(opt.base_folder, 'ucf101_01.json')
     opt.result_path = opt.base_folder
 
-    opt.root_path = './data'
-    opt.resume_path = os.path.join(opt.root_path, 'results-scratch-1/save_200.pth')
+    opt.root_path = './3D-ResNet/data'
+    opt.resume_path = os.path.join(opt.root_path, 'results-scratch-18/save_200.pth')
     opt.pretrain_path = os.path.join(opt.root_path, 'models/resnet-18-kinetics.pth')
 
     opt.dataset = 'ucf101'
@@ -48,9 +47,9 @@ if __name__ == '__main__':
     opt.n_threads = 1
     opt.checkpoint = 5
 
-    opt.scales = [opt.initial_scale]
-    for i in range(1, opt.n_scales):
-        opt.scales.append(opt.scales[-1] * opt.scale_step)
+    # opt.scales = [opt.initial_scale]
+    # for i in range(1, opt.n_scales):
+    #     opt.scales.append(opt.scales[-1] * opt.scale_step)
     opt.arch = '{}-{}'.format(opt.model, opt.model_depth)
     opt.mean = get_mean(opt.norm_value, dataset=opt.mean_dataset)
     opt.std = get_std(opt.norm_value)
@@ -163,6 +162,10 @@ if __name__ == '__main__':
             CornerCrop(opt.sample_size, opt.crop_position_in_test),
             ToTensor(opt.norm_value), norm_method
         ])
+        # spatial_transform = Compose([
+        #     HardScale(int(opt.sample_size)),
+        #     ToTensor(opt.norm_value), norm_method
+        # ])
         temporal_transform = LoopPadding(opt.sample_duration)
 
         # target_transform = VideoID()

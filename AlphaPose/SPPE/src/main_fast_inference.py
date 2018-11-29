@@ -10,7 +10,7 @@ from SPPE.src.models.FastPose import createModel
 
 import visdom
 import time
-
+import os
 
 import torch._utils
 try:
@@ -29,8 +29,12 @@ class InferenNet(nn.Module):
         super(InferenNet, self).__init__()
 
         model = createModel().cuda()
-        print('Loading pose model from {}'.format('./models/sppe/duc_se.pth'))
-        model.load_state_dict(torch.load('./models/sppe/duc_se.pth'))
+        if os.path.exists('./models/sppe/duc_se.pth'):
+            print('Loading pose model from {}'.format('./models/sppe/duc_se.pth'))
+            model.load_state_dict(torch.load('./models/sppe/duc_se.pth'))
+        else:
+            print('Loading pose model from {}'.format('./AlphaPose/models/sppe/duc_se.pth'))
+            model.load_state_dict(torch.load('./AlphaPose/models/sppe/duc_se.pth'))
         model.eval()
         self.pyranet = model
 
@@ -56,8 +60,12 @@ class InferenNet_fast(nn.Module):
         super(InferenNet_fast, self).__init__()
 
         model = createModel().cuda()
-        print('Loading pose model from {}'.format('./models/sppe/duc_se.pth'))
-        model.load_state_dict(torch.load('./models/sppe/duc_se.pth'))
+        if os.path.exists('./models/sppe/duc_se.pth'):
+            print('Loading pose model from {}'.format('./models/sppe/duc_se.pth'))
+            model.load_state_dict(torch.load('./models/sppe/duc_se.pth'))
+        else:
+            print('Loading pose model from {}'.format('./AlphaPose/models/sppe/duc_se.pth'))
+            model.load_state_dict(torch.load('./AlphaPose/models/sppe/duc_se.pth'))
         model.eval()
         self.pyranet = model
 

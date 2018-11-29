@@ -1,6 +1,7 @@
 import numpy as np
 import os
 import cv2
+from shutil import copyfile
 
 from skimage.transform import resize
 from skimage.io import imsave
@@ -173,8 +174,6 @@ class annotation_tools:
 				spare_ins.append([len(spare_ins)+1, pre_frame_id, start_frame_id])
 			pre_frame_id = end_frame_id
 
-		# print(annos_ins)
-		# print(spare_ins)
 		return spare_ins
 
 	def get_others_class_from_annos(self, video_name, anno_name1, anno_name2, save_folder=None, n_samples_for_each_video=45):
@@ -217,7 +216,7 @@ class annotation_tools:
 					img_name = 'image_{:0>5d}.jpg'.format(frame_id % (n_samples_for_each_video))
 					cv2.imwrite(save_folder_tmp+'/'+img_name, img)
 
-
+	### for windows_dataset
 	def get_TrainTestlist(self, clip_folder, Trainlist_name, Testlist_name):
 		label_map = {'clean':'1', 'normal':'2', 'pick':'3', 'scratch':'4'}
 
@@ -237,19 +236,52 @@ class annotation_tools:
 		Trainlist.close()
 		Testlist.close()
 
+	### for windows_dataset
+	def split_into_n_samples(self, in_folder, out_folder, n_samples_for_each_video=45, min_n_samples=40):
+		if not os.path.exists(out_folder):
+			os.makedirs(out_folder)
 
-def main_windows_dataset():
+		for sub in os.listdir(in_folder):
+			sub_in_folder = os.path.join(in_folder, sub)
+			image_list = [img for img in os.listdir(sub_in_folder) if img.endswith('.jpg')]
+			n_folders = len(image_list) // n_samples_for_each_video
+			for i in range(n_folders):
+				sub_out_folder = os.path.join(out_folder, sub+'_{}'.format(i+1))
+				if not os.path.exists(sub_out_folder):
+					os.makedirs(sub_out_folder)
+
+				for t in range(n_samples_for_each_video):
+					in_img_name = os.path.join(sub_in_folder, image_list[i*n_samples_for_each_video + t])
+					out_img_name = os.path.join(sub_out_folder, 'image_{:0>5d}.jpg'.format(t+1))
+					print(in_img_name, out_img_name)
+					copyfile(in_img_name, out_img_name)
+
+			n_samples_for_last_video = len(image_list) - n_folders*n_samples_for_each_video
+			if n_samples_for_last_video > min_n_samples:
+				sub_out_folder = os.path.join(out_folder, sub+'_{}'.format(n_folders+1))
+				if not os.path.exists(sub_out_folder):
+					os.makedirs(sub_out_folder)
+
+				for t in range(n_samples_for_last_video):
+					in_img_name = os.path.join(sub_in_folder, image_list[n_folders*n_samples_for_each_video + t])
+					out_img_name = os.path.join(sub_out_folder, 'image_{:0>5d}.jpg'.format(t+1))
+					print(in_img_name, out_img_name)
+					copyfile(in_img_name, out_img_name)
+
+
+### get clip of whole humane body and create TrainTestlist for 3D-Net
+def main_windows_dataset1():
 	base_folder = '/media/qcxu/qcxuDisk/windows_datasets_all/'
-	_actions_ = ['clean', 'normal', 'pick', 'scratch']
+	__action__ = ['clean', 'normal', 'pick', 'scratch']
 
 	lt = annotation_tools()
 	
-	for action in _actions_:
+	for act in __action__:
 		for i in range(0, 1000):
-			video_id = action + '{:0>6d}'.format(i)
+			video_id = act + '{:0>6d}'.format(i)
 			anno_name = base_folder + 'annotations/' + video_id + '_IndividualStates.txt'
-			video_name = base_folder + 'videos/' + action + '/' + video_id + '.avi'
-			clip_folder = base_folder + 'clips/' + action + '/' + video_id
+			video_name = base_folder + 'videos/' + act + '/' + video_id + '.avi'
+			clip_folder = base_folder + 'clips/' + act + '/' + video_id
 			if not os.path.isfile(anno_name) or not os.path.isfile(video_name):
 				continue
 
@@ -260,6 +292,19 @@ def main_windows_dataset():
 	# Trainlist_name = base_folder + 'TrainTestlist/trainlist01.txt'
 	# Testlist_name = base_folder + 'TrainTestlist/testlist01.txt'
 	# lt.get_TrainTestlist(clip_folder, Trainlist_name, Testlist_name)
+
+### get clip of whole humane body and be prepared for AlphaPose
+def main_windows_dataset2():
+	base_folder = '/media/qcxu/qcxuDisk/windows_datasets_all/clips/'
+	__action__ = ['clean', 'normal', 'pick', 'scratch']
+
+	lt = annotation_tools()
+	
+	for act in __action__:
+		sub_folder = os.path.join(base_folder, act)
+		in_folder = os.path.join(sub_folder, 'clips_non_fixed_nframe')
+		out_folder = os.path.join(sub_folder, 'clips')
+		lt.split_into_n_samples(in_folder, out_folder)
 
 
 def main_scratch_dataset():
@@ -293,5 +338,5 @@ def main_scratch_dataset():
 
 
 if __name__ == "__main__":
-	# main_windows_dataset()
-	main_scratch_dataset()
+	main_windows_dataset2()
+	# main_scratch_dataset()

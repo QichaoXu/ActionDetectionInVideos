@@ -1,4 +1,6 @@
 from skeleton_tools import skeleton_tools
+from skeleton_tools import yolo_skeleton
+
 import os
 import sys
 import subprocess
@@ -6,8 +8,7 @@ import json
 import cv2
 
 
-
-class demo_video:
+class demo_detect_action_in_video:
 	def __init__(self, st, base_folder, video_name):
 
 		self.st = st
@@ -32,7 +33,7 @@ class demo_video:
 		if not os.path.exists(self.image_folder):
 			os.makedirs(self.image_folder)
 
-	def get_clip(self):
+	def get_clip(self, ys):
 
 		## convet video to image
 		num_frames = len(os.listdir(self.image_folder))
@@ -45,7 +46,7 @@ class demo_video:
 
 		num_frames = len(os.listdir(self.image_folder))
 		frame_id = 1
-		for clip_id in range(1):#num_frames//self.sample_duration):
+		for clip_id in range(num_frames//self.sample_duration):
 			t_string = '{:03d}'.format(clip_id)
 
 			### temporal folder
@@ -79,10 +80,17 @@ class demo_video:
 				subprocess.call(cmd, shell=True)
 
 			### calculate skeleton and get hand-clip
-			self.st.get_skeleton(in_clip_folder, skeleton_folder)
-			self.st.get_valid_skeletons(skeleton_folder, is_labeled=False)
-			self.st.vis_skeleton(in_clip_folder, skeleton_folder, None, is_labeled=False, is_save=True)
-			# self.st.get_hand_clip(in_clip_folder, skeleton_folder, out_clip_folder+'/'+t_string, is_labeled=False)
+			# ys.get_skeleton(in_clip_folder, skeleton_folder)
+
+			# self.st.get_valid_skeletons(skeleton_folder, is_labeled=False)
+			# self.st.vis_skeleton(
+			# 	in_clip_folder, skeleton_folder, json_file_name='valid_skeleton.json',
+			# 	result_labels=None, is_labeled=False, is_save=True)
+			# self.st.vis_skeleton(
+			# 	in_clip_folder, skeleton_folder, json_file_name='all_skeleton.json',
+			# 	result_labels=None, is_labeled=False, is_save=True)
+			self.st.get_hand_clip(in_clip_folder, skeleton_folder, out_clip_folder+'/'+t_string, 
+				is_labeled=False)
 
 		### get ready for C3D
 		self.st.create_Testlist(self.base_out_clip_folder, self.out_folder)
@@ -91,7 +99,8 @@ class demo_video:
 	def __conver_frame_to_video(self, image_folder, video):
 	    # video_name must be end with .avi.
 
-	    image_names_list = [img for img in sorted(os.listdir(image_folder)) if img.endswith(".png") or img.endswith(".jpg") or img.endswith(".ppm")]
+	    image_names_list = [img for img in sorted(os.listdir(image_folder)) if img.endswith(".png") or 
+	    	img.endswith(".jpg") or img.endswith(".ppm")]
 	    frame = cv2.imread(os.path.join(image_folder, image_names_list[0]))
 	    height, width, layers = frame.shape
 
@@ -101,16 +110,17 @@ class demo_video:
 
 	    return video
 
-	def vis_result(self):
+	def vis_result(self, avi_name):
 
 		### result
 		f = open(os.path.join(self.out_folder, 'val.json'))
 		result = json.load(f)
 
 		### result video
-		out_video_name = self.out_folder + '/res.avi'
+		out_video_name = self.out_folder + '/' + avi_name
 		fourcc = cv2.VideoWriter_fourcc(*'XVID')
 		video = cv2.VideoWriter(out_video_name, fourcc, 30.0, (1280, 720))
+		print(out_video_name)
 
 		sum_valid_human = 0
 		num_frames = len(os.listdir(self.image_folder))
@@ -134,10 +144,10 @@ class demo_video:
 			result_t = [result[key] for key in valid_keys]
 			sum_valid_human += num_valid_human
 
-			print(num_valid_human)
-
 			### visualize result
-			self.st.vis_skeleton(in_clip_folder, skeleton_folder, result_t, is_labeled=False, is_save=True)
+			self.st.vis_skeleton(
+				in_clip_folder, skeleton_folder, json_file_name='valid_skeleton.json',
+				result_labels=result_t, is_labeled=False, is_save=True, thres=0.3)
 			video = self.__conver_frame_to_video(skeleton_folder+'/res', video)
 
 		cv2.destroyAllWindows()
@@ -147,10 +157,20 @@ class demo_video:
 if __name__ == "__main__":
 
 	st = skeleton_tools()
-	base_folder = '/media/qcxu/qcxuDisk/Dataset/scratch_dataset/videos/'
-	video_name = 'Video_45.mp4'
+	ys = yolo_skeleton()
 
-	dv = demo_video(st, base_folder, video_name)
+	# base_folder = '/media/qcxu/qcxuDisk/Dataset/scratch_dataset/videos/'
+	# video_name = 'Video_11.mp4'
 
-	dv.get_clip()
-	# dv.vis_result()
+	base_folder = '/media/qcxu/qcxuDisk/windows_datasets_all/videos_test/small_videos/'
+	for video_name in os.listdir(base_folder):
+		if not video_name.endswith('.avi') and not video_name.endswith('mp4'):
+			continue
+
+		if video_name.split('.')[0] != '1_10':
+			continue
+
+		dv = demo_detect_action_in_video(st, base_folder, video_name)
+
+		dv.get_clip(ys)
+		# dv.vis_result(avi_name='res_'+video_name)

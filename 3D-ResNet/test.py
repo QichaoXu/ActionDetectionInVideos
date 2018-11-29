@@ -27,7 +27,7 @@ def calculate_video_results(output_buffer, video_id, test_results, class_names):
 
 def calculate_clip_results(output_buffer):
     sorted_scores, locs = torch.topk(output_buffer, k=3)
-    return int(locs[0][0]), float(sorted_scores[0][0])
+    return int(locs[0][0]), output_buffer[0].detach().cpu().numpy().tolist()
 
 
 def test(data_loader, model, opt, class_names):
@@ -54,8 +54,8 @@ def test(data_loader, model, opt, class_names):
             outputs = F.softmax(outputs)
 
         out_label, out_prob = calculate_clip_results(outputs)
-        test_results[int(i)] = [class_names[out_label], out_prob]
-        print(i, int(targets[0]), class_names[out_label], out_prob)
+        test_results[int(i)] = [out_label, out_prob]
+        print(i, int(targets[0]), out_label, class_names[out_label], out_prob)
         # for j in range(outputs.size(0)):
         #     if not (i == 0 and j == 0) and targets[j] != previous_video_id:
         #         calculate_video_results(output_buffer, previous_video_id,

@@ -35,7 +35,7 @@ def load_labels(label_csv_path):
     return labels
 
 def convert_ucf101_csv_to_activitynet_json(label_csv_path, train_csv_path, 
-                                           val_csv_path, dst_json_path):
+                                           val_csv_path, dst_json_path, validate_or_test):
     dst_data = {}
 
     # labels = load_labels(label_csv_path)
@@ -49,12 +49,8 @@ def convert_ucf101_csv_to_activitynet_json(label_csv_path, train_csv_path,
         dst_data['database'].update(train_database)
 
     if os.path.isfile(val_csv_path):
-        val_database = convert_csv_to_dict(val_csv_path, 'validation')
+        val_database = convert_csv_to_dict(val_csv_path, validate_or_test)
         dst_data['database'].update(val_database)
-
-    if os.path.isfile(val_csv_path):
-        test_database = convert_csv_to_dict(val_csv_path, 'testing')
-        dst_data['database'].update(test_database)
 
     with open(dst_json_path, 'w') as dst_file:
         json.dump(dst_data, dst_file)
@@ -63,6 +59,8 @@ if __name__ == '__main__':
     csv_dir_path = sys.argv[1]
     print(csv_dir_path)
 
+    validate_or_test = sys.argv[2] # 'validation' or 'testing'
+
     split_index = 1
     label_csv_path = os.path.join(csv_dir_path, 'classInd.txt')
     train_csv_path = os.path.join(csv_dir_path, 'trainlist0{}.txt'.format(split_index))
@@ -70,4 +68,4 @@ if __name__ == '__main__':
     dst_json_path = os.path.join(csv_dir_path, 'ucf101_0{}.json'.format(split_index))
 
     convert_ucf101_csv_to_activitynet_json(label_csv_path, train_csv_path,
-                                               val_csv_path, dst_json_path)
+                                               val_csv_path, dst_json_path, validate_or_test)
