@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 
 <div align="center">
     <img src="doc/logo.jpg", width="400">
@@ -83,6 +82,4 @@ Please cite these papers in your publications if it helps your research:
 
 ## License
 AlphaPose is freely available for free non-commercial use, and may be redistributed under these conditions. For commercial queries, contact [Cewu Lu](http://www.mvig.org/)
-=======
-# ActionDetectionInVideos
->>>>>>> 1b2111a4514489e02a63245b90d0176789e4053b
+
