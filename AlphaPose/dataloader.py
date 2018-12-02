@@ -4,9 +4,9 @@ from torch.autograd import Variable
 import torch.utils.data as data
 import torchvision.transforms as transforms
 from PIL import Image, ImageDraw
-from SPPE.src.utils.img import load_image, cropBox, im_to_torch
+from SPPE.src.utils.img import load_image, load_image_from_image, cropBox, im_to_torch
 from opt import opt
-from yolo.preprocess import prep_image, prep_frame, inp_to_image
+from yolo.preprocess import prep_image, prep_image_from_image, prep_frame, inp_to_image
 from pPose_nms import pose_nms, write_json
 from SPPE.src.utils.eval import getPrediction
 from yolo.util import write_results, dynamic_write_results
@@ -29,6 +29,37 @@ if opt.vis_fast:
     from fn import vis_frame_fast as vis_frame
 else:
     from fn import vis_frame
+
+
+class Image_loader_from_images(data.Dataset):
+    def __init__(self, imglist, format='yolo'):
+        super(Image_loader_from_images, self).__init__()
+        self.imglist = imglist
+        self.format = format
+
+    def getitem_ssd(self, index):
+        None
+
+    def getitem_yolo(self, index):
+        im_name = 'image_{:05d}.jpg'.format(index+1)
+        inp_dim = int(opt.inp_dim)
+        img = self.imglist[index]
+        im, orig_img, im_dim = prep_image_from_image(img, inp_dim)
+        #im_dim = torch.FloatTensor([im_dim]).repeat(1, 2)
+
+        inp = load_image_from_image(img)
+        return im, inp, orig_img, im_name, im_dim
+
+    def __getitem__(self, index):
+        if self.format == 'ssd':
+            return self.getitem_ssd(index)
+        elif self.format == 'yolo':
+            return self.getitem_yolo(index)
+        else:
+            raise NotImplementedError
+
+    def __len__(self):
+        return len(self.imglist)
 
 
 class Image_loader(data.Dataset):
@@ -96,7 +127,6 @@ class DetectionLoader:
             self.det_inp_dim = int(self.det_model.net_info['height'])
             assert self.det_inp_dim % 32 == 0
             assert self.det_inp_dim > 32
-            print('YOLO model loaded')
 
         self.stopped = False
         self.dataset = dataset

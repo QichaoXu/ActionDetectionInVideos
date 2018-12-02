@@ -9,6 +9,8 @@ from PIL import Image
 from copy import deepcopy
 import matplotlib.pyplot as plt
 
+import cv2
+
 
 def im_to_torch(img):
     img = np.transpose(img, (2, 0, 1))  # C*H*W
@@ -22,6 +24,11 @@ def torch_to_im(img):
     img = to_numpy(img)
     img = np.transpose(img, (1, 2, 0))  # C*H*W
     return img
+
+
+def load_image_from_image(img):
+    # H x W x C => C x H x W
+    return im_to_torch(img)
 
 
 def load_image(img_path):

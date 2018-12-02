@@ -16,7 +16,7 @@ def convert_csv_to_dict(csv_path, subset):
         
         keys.append(basename)
         key_labels.append(class_name)
-        
+    
     database = {}
     for i in range(len(keys)):
         key = keys[i]
@@ -27,6 +27,7 @@ def convert_csv_to_dict(csv_path, subset):
 
     return database
 
+
 def load_labels(label_csv_path):
     data = pd.read_csv(label_csv_path, delimiter=' ', header=None)
     labels = []
@@ -35,7 +36,7 @@ def load_labels(label_csv_path):
     return labels
 
 def convert_ucf101_csv_to_activitynet_json(label_csv_path, train_csv_path, 
-                                           val_csv_path, dst_json_path, validate_or_test):
+                                           val_csv_path, dst_json_path):
     dst_data = {}
 
     # labels = load_labels(label_csv_path)
@@ -49,7 +50,7 @@ def convert_ucf101_csv_to_activitynet_json(label_csv_path, train_csv_path,
         dst_data['database'].update(train_database)
 
     if os.path.isfile(val_csv_path):
-        val_database = convert_csv_to_dict(val_csv_path, validate_or_test)
+        val_database = convert_csv_to_dict(val_csv_path, 'validation')
         dst_data['database'].update(val_database)
 
     with open(dst_json_path, 'w') as dst_file:
@@ -59,13 +60,11 @@ if __name__ == '__main__':
     csv_dir_path = sys.argv[1]
     print(csv_dir_path)
 
-    validate_or_test = sys.argv[2] # 'validation' or 'testing'
-
     split_index = 1
     label_csv_path = os.path.join(csv_dir_path, 'classInd.txt')
     train_csv_path = os.path.join(csv_dir_path, 'trainlist0{}.txt'.format(split_index))
-    val_csv_path = os.path.join(csv_dir_path, 'testlist0{}.txt'.format(split_index))
+    val_csv_path = 'None' #os.path.join(csv_dir_path, 'testlist0{}.txt'.format(split_index))
     dst_json_path = os.path.join(csv_dir_path, 'ucf101_0{}.json'.format(split_index))
 
     convert_ucf101_csv_to_activitynet_json(label_csv_path, train_csv_path,
-                                               val_csv_path, dst_json_path, validate_or_test)
+                                               val_csv_path, dst_json_path)

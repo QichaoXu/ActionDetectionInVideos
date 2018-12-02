@@ -30,6 +30,18 @@ def letterbox_image(img, inp_dim):
 
     return canvas
 
+def prep_image_from_image(orig_im, inp_dim):
+    """
+    Prepare image for inputting to the neural network.
+
+    Returns a Variable
+    """
+
+    dim = orig_im.shape[1], orig_im.shape[0]
+    img = (letterbox_image(orig_im, (inp_dim, inp_dim)))
+    img_ = img[:, :, ::-1].transpose((2, 0, 1)).copy()
+    img_ = torch.from_numpy(img_).float().div(255.0).unsqueeze(0)
+    return img_, orig_im, dim
 
 def prep_image(img, inp_dim):
     """

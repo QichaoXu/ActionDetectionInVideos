@@ -285,7 +285,7 @@ def main_windows_dataset1():
 			if not os.path.isfile(anno_name) or not os.path.isfile(video_name):
 				continue
 
-			# lt.vis_anno_result(video_name, anno_name)
+			lt.vis_anno_result(video_name, anno_name)
 			lt.get_clip_from_annos(video_name, anno_name, clip_folder)
 
 	# clip_folder = base_folder + 'clips/'

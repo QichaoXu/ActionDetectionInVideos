@@ -13,7 +13,7 @@ class skeleton_tools:
     def __init__(self):
         self.skeleton_size = 17
 
-    def __plot_skeleton(self, img, kp_preds, kp_scores, target_kps, result_labels, thres):
+    def __plot_skeleton(self, img, kp_preds, kp_scores, target_kps, result_labels=None, thres=0.75):
 
         l_pair = [(0, 1), (0, 2), (1, 3), (2, 4),       # Head
             (5, 6), (5, 7), (7, 9), (6, 8), (8, 10),    # Hand
@@ -157,7 +157,7 @@ class skeleton_tools:
 
         return kp_preds_out, kp_scores_out
 
-    def __validate_skeletons(self, kp_preds_all, kp_scores_all, is_labeled=False):
+    def __validate_skeletons(self, kp_preds_all, kp_scores_all):
 
         kp_preds_out_all = [kp_preds_all[0]]
         kp_scores_out_all = [kp_scores_all[0]]
@@ -177,11 +177,11 @@ class skeleton_tools:
         return kp_preds_out_all, kp_scores_out_all
 
 
-    def get_valid_skeletons(self, skeleton_folder, is_labeled=False):
+    def get_valid_skeletons(self, skeleton_folder, in_skeleton_list, is_savejson=True):
 
-        in_skeleton_file = os.path.join(skeleton_folder, 'skeleton.txt')
-        print(in_skeleton_file)
-        in_skeleton_list = [line.split() for line in open(in_skeleton_file, 'r')]
+        if in_skeleton_list is None:
+            in_skeleton_file = os.path.join(skeleton_folder, 'skeleton.txt')
+            in_skeleton_list = [line.split() for line in open(in_skeleton_file, 'r')]
 
         im_name_all = []
         kp_preds_all = []
@@ -195,29 +195,22 @@ class skeleton_tools:
             kp_preds_all.append(kp_preds)
             kp_scores_all.append(kp_scores)
 
-        # original skeleton
-        results = {}
-        results['im_name_all'] = im_name_all
-        results['kp_preds_all'] = kp_preds_all
-        results['kp_scores_all'] = kp_scores_all
-        with open(
-                os.path.join(skeleton_folder, 'all_skeleton.json'),
-                'w') as f:
-            json.dump(results, f)
-
         # validate skeleton
-        kp_preds_all, kp_scores_all = self.__validate_skeletons(kp_preds_all, kp_scores_all, is_labeled)
+        kp_preds_all, kp_scores_all = self.__validate_skeletons(kp_preds_all, kp_scores_all)
 
-        results = {}
-        results['im_name_all'] = im_name_all
-        results['kp_preds_all'] = kp_preds_all
-        results['kp_scores_all'] = kp_scores_all
-        with open(
-                os.path.join(skeleton_folder, 'valid_skeleton.json'),
-                'w') as f:
-            json.dump(results, f)
+        if is_savejson:
+            results = {}
+            results['im_name_all'] = im_name_all
+            results['kp_preds_all'] = kp_preds_all
+            results['kp_scores_all'] = kp_scores_all
+            with open(
+                    os.path.join(skeleton_folder, 'valid_skeleton.json'),
+                    'w') as f:
+                json.dump(results, f)
 
-    def __load_valid_skeleton_json(self, skeleton_folder, json_file_name='valid_skeleton.json'):
+        return im_name_all, kp_preds_all, kp_scores_all
+
+    def __load_valid_skeleton_json(self, skeleton_folder, json_file_name):
         f = open(os.path.join(skeleton_folder, json_file_name))
         data = json.load(f)
         im_name_all = data['im_name_all']
@@ -226,73 +219,33 @@ class skeleton_tools:
         f.close()
         return im_name_all, kp_preds_all, kp_scores_all
 
-    def __get_hand_cors(self, kp_preds_all, kp_scores_all, target_kps):
-        num_valid_human = len(kp_preds_all[0]) // (2*self.skeleton_size)
-        assert(num_valid_human == len(kp_scores_all[0]) // self.skeleton_size)
-
-        hand_cors = []
-        for h in range(num_valid_human):
-            x1, y1, x2, y2 = 10000, 10000, 0, 0
-            box_w, box_h = 0, 0
-            for i, kp_preds in enumerate(kp_preds_all):
-                kp_scores = kp_scores_all[i]
-
-                kp_preds_h = kp_preds[h*2*self.skeleton_size : (h+1)*2*self.skeleton_size]
-                kp_scores_h = kp_scores[h*self.skeleton_size : (h+1)*self.skeleton_size]
-                for n in target_kps:
-                    if float(kp_scores_h[n]) <= 0.05:
-                        continue
-                    x1 = min(x1, kp_preds_h[2*n]-20)
-                    y1 = min(y1, kp_preds_h[2*n+1]-20)
-                    x2 = max(x2, kp_preds_h[2*n]+20)
-                    y2 = max(y2, kp_preds_h[2*n+1]+20)
-                    box_w = max(box_w, x2-x1)
-                    box_h = max(box_h, y2-y1)
-            # hand_cors.append([x1, y1, x2, y2])
-
-            hand_cors_h = []
-            for kp_preds in kp_preds_all:
-
-                kp_preds_h = kp_preds[h*2*self.skeleton_size : (h+1)*2*self.skeleton_size]
-
-                # get center
-                box_cx, box_cy = 0, 0
-                target_kps = [5,6,11,12]
-                for n in target_kps:
-                    box_cx += kp_preds_h[2*n]
-                    box_cy += kp_preds_h[2*n+1]
-                box_cx =  box_cx // len(target_kps)
-                box_cy =  box_cy // len(target_kps)
-
-                box_x1 = box_cx - (box_w//2)
-                box_y1 = box_cy - (box_h//2)
-                box_x2 = box_cx + (box_w//2)
-                box_y2 = box_cy + (box_h//2)
-                hand_cors_h.append([box_x1, box_y1, box_x2, box_y2])
-            hand_cors.append(hand_cors_h)
-
-        return hand_cors
-
-    def vis_skeleton(self, in_clip_folder, skeleton_folder, json_file_name='valid_skeleton.json', 
-                result_labels=None, is_labeled=False, is_save=False, thres=0.75):
+    def vis_skeleton(self, in_clip_folder, skeleton_folder, json_file_name, 
+                im_name_all, kp_preds_all, kp_scores_all, imglist,
+                result_labels=None, is_save=False, is_vis=False, thres=0.75):
 
         target_kps = [5, 6, 7, 8, 9, 10]
 
-        im_name_all, kp_preds_all, kp_scores_all = self.__load_valid_skeleton_json(skeleton_folder, json_file_name)
+        if im_name_all is None:
+            im_name_all, kp_preds_all, kp_scores_all = self.__load_valid_skeleton_json(skeleton_folder, json_file_name)
 
         if kp_preds_all is None:
             print('**** No valid skeletons ****')
             print(skeleton_folder)
             return
 
+        img_out_all = []
         for i, im_name in enumerate(im_name_all):
-            img = cv2.imread(os.path.join(in_clip_folder, im_name))
+            if imglist is None:
+                img = cv2.imread(os.path.join(in_clip_folder, im_name))
+            else:
+                img = imglist[i].copy()
             img_out = self.__plot_skeleton(img, kp_preds_all[i], kp_scores_all[i], target_kps, result_labels, thres)
-            cv2.imshow('skeletons', img_out)
-            cv2.waitKey(15)
+
+            if is_vis:
+                cv2.imshow('skeletons', img_out)
+                cv2.waitKey(15)
 
             if is_save:
-
                 if result_labels is None:
                     if json_file_name == 'valid_skeleton.json':
                         vis_out_folder = os.path.join(skeleton_folder, 'vis_valid')
@@ -304,6 +257,9 @@ class skeleton_tools:
                     os.makedirs(vis_out_folder)
 
                 cv2.imwrite(os.path.join(vis_out_folder, im_name), img_out)
+            else:
+                img_out_all.append(img_out)
+        return img_out_all
 
     def __multi_moving_average(self, X, window_size, times):
         for t in range(times):
@@ -321,69 +277,175 @@ class skeleton_tools:
 
         return X_new
 
-    def get_hand_clip(self, in_clip_folder, skeleton_folder, out_clip_folder, is_labeled=False):
+    def __smooth_coordinate(self, kp_preds_all):
+
+        hand_cor_tmp = np.array(kp_preds_all).transpose()
+        for i in range(hand_cor_tmp.shape[0]):
+            X = hand_cor_tmp[i].copy()
+            smoothed = self.__multi_moving_average(X, window_size=5, times=3)
+            hand_cor_tmp[i] = smoothed
+        hand_cor = np.array(hand_cor_tmp).transpose()
+
+        return hand_cor.tolist()
+
+    def __get_hand_cors(self, kp_preds_all, kp_scores_all, target_kps, is_static_BG=False):
+        num_valid_human = len(kp_preds_all[0]) // (2*self.skeleton_size)
+        assert(num_valid_human == len(kp_scores_all[0]) // self.skeleton_size)
+
+        hand_cors = []
+        for h in range(num_valid_human):
+            x1, y1, x2, y2 = 10000, 10000, 0, 0
+            box_w, box_h = 0, 0
+            for i, kp_preds in enumerate(kp_preds_all):
+                kp_scores = kp_scores_all[i]
+
+                kp_preds_h = kp_preds[h*2*self.skeleton_size : (h+1)*2*self.skeleton_size]
+                kp_scores_h = kp_scores[h*self.skeleton_size : (h+1)*self.skeleton_size]
+                for n in target_kps:
+                    if float(kp_scores_h[n]) <= 0.05:
+                        continue
+                    x1 = min(x1, kp_preds_h[2*n] - 20)
+                    y1 = min(y1, kp_preds_h[2*n+1] - 20)
+                    x2 = max(x2, kp_preds_h[2*n] + 20)
+                    y2 = max(y2, kp_preds_h[2*n+1] + 20)
+                    box_w = max(box_w, x2-x1)
+                    box_h = max(box_h, y2-y1)
+
+            if is_static_BG:
+                hand_cors.append([x1, y1, x2, y2])
+            else:
+                hand_cors_h = []
+                for kp_preds in kp_preds_all:
+
+                    kp_preds_h = kp_preds[h*2*self.skeleton_size : (h+1)*2*self.skeleton_size]
+
+                    # get center
+                    box_cx, box_cy = 0, 0
+                    target_kps = [5,6,11,12]
+                    for n in target_kps:
+                        box_cx += kp_preds_h[2*n]
+                        box_cy += kp_preds_h[2*n+1]
+                    box_cx =  box_cx // len(target_kps)
+                    box_cy =  box_cy // len(target_kps)
+
+                    box_x1 = box_cx - (box_w//2)
+                    box_y1 = box_cy - (box_h//2)
+                    box_x2 = box_cx + (box_w//2)
+                    box_y2 = box_cy + (box_h//2)
+                    hand_cors_h.append([box_x1, box_y1, box_x2, box_y2])
+
+                hand_cors.append(hand_cors_h)
+
+        return hand_cors
+
+    def __crop_moving_image(self, img, x1, y1, x2, y2):
+        if x1 == x2:
+            return None
+
+        img_out = np.zeros(shape=(y2-y1, x2-x1, 3), dtype='uint8')
+        out_x1 = max(0, -x1)
+        out_y1 = max(0, -y1)
+
+        x1 = max(0, x1)
+        y1 = max(0, y1)
+        x2 = min(x2, img.shape[1])
+        y2 = min(y2, img.shape[0])
+        try:
+            img_out[out_y1:out_y1+y2-y1, out_x1:out_x1+x2-x1, :] = img[y1:y2, x1:x2, :]
+            return img_out
+        except:
+            return None
+
+    def __crop_image(self, img, x1, y1, x2, y2):
+        if x1 == 10000 or x2 == 10000 or x2 == 0 or y2 == 0:
+            return None
+
+        x1 = max(0, x1)
+        y1 = max(0, y1)
+        x2 = min(x2, img.shape[1])
+        y2 = min(y2, img.shape[0])
+        try:
+            img_out = img[y1:y2, x1:x2, :]
+            return img_out
+        except:
+            return None
+
+    def get_hand_clip(self, in_clip_folder, skeleton_folder, out_clip_folder, json_file_name, 
+                im_name_all, kp_preds_all, kp_scores_all, imglist,
+                is_save=False, is_vis=False, is_static_BG=False):
 
         target_kps = [5, 6, 7, 8, 9, 10]
 
-        im_name_all, kp_preds_all, kp_scores_all = self.__load_valid_skeleton_json(skeleton_folder)
+        if im_name_all is None:
+            im_name_all, kp_preds_all, kp_scores_all = self.__load_valid_skeleton_json(skeleton_folder, json_file_name)
 
         if kp_preds_all is None:
             print('**** No valid skeletons ****')
             print(skeleton_folder)
             return
 
-        hand_cors = self.__get_hand_cors(kp_preds_all, kp_scores_all, target_kps)
+        ## smooth
+        kp_preds_all = self.__smooth_coordinate(kp_preds_all)
 
+        hand_cors = self.__get_hand_cors(kp_preds_all, kp_scores_all, target_kps, is_static_BG)
+
+        img_out_all = []
         for human_id, hand_cor in enumerate(hand_cors):
-            # x1, y1, x2, y2 = hand_cor
 
-            ## smooth
-            hand_cor_tmp = np.array(hand_cor).transpose()
-            for i in range(hand_cor_tmp.shape[0]):
-                X = hand_cor_tmp[i].copy()
-                smoothed = self.__multi_moving_average(X, window_size=5, times=3)
-                hand_cor_tmp[i] = smoothed
-            hand_cor = np.array(hand_cor_tmp).transpose()
-
-            out_folder = out_clip_folder + '_' + str(human_id+1)
-            if not os.path.exists(out_folder):
-                os.makedirs(out_folder)
-
+            img_out_h = []
             for i, im_name in enumerate(im_name_all):
-                x1, y1, x2, y2 = hand_cor[i]
-                img = cv2.imread(os.path.join(in_clip_folder, im_name))
-                x1 = max(0, x1)
-                y1 = max(0, y1)
-                x2 = min(x2, img.shape[1])
-                y2 = min(y2, img.shape[0])
-                img_out = img[y1:y2, x1:x2, :]
-                cv2.imshow('skeletons', img_out)
-                cv2.waitKey(5)
+                if imglist is None:
+                    img = cv2.imread(os.path.join(in_clip_folder, im_name))
+                else:
+                    img = imglist[i].copy()
 
-                if im_name == 'image_00000.jpg':
-                    im_name = 'image_00045.jpg'
-                cv2.imwrite(os.path.join(out_folder, im_name), img_out)
+                if is_static_BG:
+                    x1, y1, x2, y2 = hand_cor
+                    img_out = self.__crop_image(img, x1, y1, x2, y2)
+                else:
+                    x1, y1, x2, y2 = hand_cor[i]
+                    img_out = self.__crop_moving_image(img, x1, y1, x2, y2)
+
+                if img_out is not None:
+
+                    if is_vis:
+                        cv2.imshow('skeletons', img_out)
+                        cv2.waitKey(5)
+
+                    if is_save:
+                        out_folder = out_clip_folder + '_' + str(human_id+1)
+                        if not os.path.exists(out_folder):
+                            os.makedirs(out_folder)
+                        cv2.imwrite(os.path.join(out_folder, im_name), img_out)
+                    else:
+                        img_out_h.append(img_out)
+            img_out_all.append(img_out_h)
+        return img_out_all
             
-            im_names = [img for img in sorted(os.listdir(out_folder)) if img.endswith('jpg')]
-            print(out_folder, len(im_names))
-
     def create_TrainTestlist(self, clip_folder, TrainTest_folder, sample_rate):
 
         label_map = {'others':'1', 'pick':'2', 'scratch':'3'}
 
         Trainlist = []
         Testlist = []
-        count = 0
         for sub in sorted(os.listdir(clip_folder)):
             sub_folder = clip_folder + sub
+            count = 0
             for subsub in sorted(os.listdir(sub_folder)):
+                n_frames = len(os.listdir(sub_folder+'/'+subsub))
+                # if n_frames != 45 and n_frames != 46:
+                #     print(subsub, n_frames)
                 contents = sub + '/' + subsub + ' ' + label_map[sub] + '\n'
-                if count % sample_rate == 0: # test
-                    Testlist.append(contents)
-                else: # train
+                if sample_rate is None: # only test
                     Trainlist.append(contents)
+                else:
+                    if count % sample_rate == 0: # test
+                        Testlist.append(contents)
+                    else: # train
+                        Trainlist.append(contents)
 
                 count += 1
+            print(sub, count)
 
         random.shuffle(Trainlist)
         random.shuffle(Testlist)
@@ -416,7 +478,10 @@ class skeleton_tools:
 
 
 if __name__ == "__main__":
-    
+
+    is_static_BG = True
+    # is_static_BG = False
+
     base_folder = '/media/qcxu/qcxuDisk/Dataset/scratch_dataset/'
     __action__ = ['others', 'pick', 'scratch']
 
@@ -426,36 +491,35 @@ if __name__ == "__main__":
 
     st = skeleton_tools()
 
-    sample_rate = 4
-    for act in __action__:
+    # for act in __action__:
 
-        if act == 'others':
-            is_labeled = False
-        else:
-            is_labeled = True
+    #     base_in_clip_folder = base_folder + act + '/clips/'
+    #     base_skeleton_folder = base_folder + act + '/skeletons/'
+    #     # base_out_clip_folder = base_folder + 'hand/' + act + '/'
+    #     base_out_clip_folder = base_folder + 'hand_static_BG/' + act + '/'
 
-        base_in_clip_folder = base_folder + act + '/clips/'
-        base_skeleton_folder = base_folder + act + '/skeletons/'
-        base_out_clip_folder = base_folder + 'hand/' + act + '/'
+    #     for sub_id, sub in enumerate(os.listdir(base_in_clip_folder)):
 
-        for sub_id, sub in enumerate(os.listdir(base_in_clip_folder)):
-            # if sub != 'Video_26_1_27':
-            #     continue
+    #         if sub != 'Video_11_1_1':
+    #             continue
 
-            # if act == 'others' and sub_id % sample_rate != 0:
-            #     continue
+    #         if act == 'others' and sub_id % 4 != 0:
+    #             continue
 
-            in_clip_folder = base_in_clip_folder + sub
-            skeleton_folder = base_skeleton_folder + sub
-            out_clip_folder = base_out_clip_folder + act + '_' + sub
+    #         in_clip_folder = base_in_clip_folder + sub
+    #         skeleton_folder = base_skeleton_folder + sub
+    #         out_clip_folder = base_out_clip_folder + act + '_' + sub
 
-            st.get_valid_skeletons(skeleton_folder, is_labeled)
-            st.vis_skeleton(
-                in_clip_folder, skeleton_folder, json_file_name='valid_skeleton.json',
-                result_labels=None, is_labeled=is_labeled, is_save=True, thres=0.3)
-            st.get_hand_clip(in_clip_folder, skeleton_folder, out_clip_folder, is_labeled)
+    #         im_name_all, kp_preds_all, kp_scores_all = st.get_valid_skeletons(
+    #             skeleton_folder, in_skeleton_list=None, is_savejson=True)
+    #         st.vis_skeleton(in_clip_folder, skeleton_folder, 'None.json',
+    #             im_name_all, kp_preds_all, kp_scores_all, imglist=None,
+    #             result_labels=None, is_save=True, is_vis=True, thres=0.3)
+    #         st.get_hand_clip(in_clip_folder, skeleton_folder, out_clip_folder, 'None.json',
+    #             im_name_all, kp_preds_all, kp_scores_all, imglist=None,
+    #             is_save=True, is_vis=True, is_static_BG=is_static_BG)
 
 
-    # clip_folder = '/media/qcxu/qcxuDisk/Dataset/scratch_dataset/hand/'
-    # TrainTest_folder = '/media/qcxu/qcxuDisk/Dataset/scratch_dataset/TrainTestlist/'
-    # st.create_TrainTestlist(clip_folder, TrainTest_folder, sample_rate=sample_rate)
+    clip_folder = '/media/qcxu/qcxuDisk/Dataset/scratch_dataset/hand_static_BG/'
+    TrainTest_folder = '/media/qcxu/qcxuDisk/Dataset/scratch_dataset/TrainTestlist/'
+    st.create_TrainTestlist(clip_folder, TrainTest_folder, sample_rate=None)
