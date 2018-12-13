@@ -80,6 +80,7 @@ class MSRA_skeleton():
         self.model = eval('models.'+config.MODEL.NAME+'.get_pose_net')(
             config, is_train=False
         )
+        print('Loading MSRA pose model..')
         print('=> loading model from {}'.format(config.TEST.MODEL_FILE))
         self.model.load_state_dict(torch.load(config.TEST.MODEL_FILE))
 
@@ -196,8 +197,8 @@ class MSRA_skeleton():
 
         return skeleton_list
 
-    def print_runtime(self):
-        print('time_det:', self.time_det)
+    def runtime(self):
+        return self.time_det
 
     def generate_target_points(self, joints, image_size, sigma):
         '''

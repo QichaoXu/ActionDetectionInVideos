@@ -55,7 +55,7 @@ class Alphapose_skeleton:
         self.det_model.eval()
 
         # Load pose model
-        print('Loading pose model..')
+        print('Loading Alphapose pose model..')
         pose_dataset = Mscoco()
         if args.fast_inference:
             self.pose_model = InferenNet_fast(4 * 1 + 1, pose_dataset)
@@ -86,7 +86,7 @@ class Alphapose_skeleton:
         for i in range(dataset.__len__()):
             with torch.no_grad():
                 (inp, orig_img, im_name, boxes, scores) = test_loader.read()
-                
+
                 if boxes is None or boxes.nelement() == 0:
                     skeleton_result = None
                 else:
@@ -123,8 +123,8 @@ class Alphapose_skeleton:
 
         return skeleton_list
 
-    def print_runtime(self):
-        print('time_det:', self.time_det)
+    def runtime(self):
+        return self.time_det
 
     def save_skeleton(self, skeleton_list, outputpath):
 

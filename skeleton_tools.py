@@ -81,6 +81,7 @@ class skeleton_tools:
                 result_cls_id = int(result_labels[h][0])
                 result_prob = result_labels[h][1][2] #[result_cls_id]
                 if cls_map[result_cls_id] == 'scratch' and result_prob > thres: 
+                # if result_prob > thres: 
                     cv2.putText(img, '{}:{:.3f}'.format(cls_map[result_cls_id], result_prob), 
                         (int(cor_x), int(cor_y)), cv2.FONT_HERSHEY_COMPLEX, 1, (0,0,255), 2)
 
@@ -243,7 +244,7 @@ class skeleton_tools:
 
             if is_vis:
                 cv2.imshow('skeletons', img_out)
-                cv2.waitKey(15)
+                cv2.waitKey(5)
 
             if is_save:
                 if result_labels is None:
@@ -421,7 +422,7 @@ class skeleton_tools:
                         img_out_h.append(img_out)
             img_out_all.append(img_out_h)
         return img_out_all
-            
+
     def create_TrainTestlist(self, clip_folder, TrainTest_folder, sample_rate):
 
         label_map = {'others':'1', 'pick':'2', 'scratch':'3'}
