@@ -293,7 +293,7 @@ class MSRA_skeleton():
         for i, (start_p, end_p) in enumerate(l_pair):
             if i not in target_kps:
                 continue
-                
+
             if start_p in part_line and end_p in part_line:
                 start_xy = part_line[start_p]
                 end_xy = part_line[end_p]
