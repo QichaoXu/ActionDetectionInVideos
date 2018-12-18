@@ -237,14 +237,16 @@ class skeleton_tools:
         img_out_all = []
         for i, im_name in enumerate(im_name_all):
             if imglist is None:
+                # print(os.path.join(in_clip_folder, im_name))
                 img = cv2.imread(os.path.join(in_clip_folder, im_name))
             else:
                 img = imglist[i].copy()
             img_out = self.__plot_skeleton(img, kp_preds_all[i], kp_scores_all[i], target_kps, result_labels, thres)
+            # print(img_out.shape)
 
             if is_vis:
                 cv2.imshow('skeletons', img_out)
-                cv2.waitKey(5)
+                cv2.waitKey(15)
 
             if is_save:
                 if result_labels is None:
@@ -373,7 +375,7 @@ class skeleton_tools:
 
     def get_hand_clip(self, in_clip_folder, skeleton_folder, out_clip_folder, json_file_name, 
                 im_name_all, kp_preds_all, kp_scores_all, imglist,
-                is_save=False, is_vis=False, is_static_BG=False):
+                is_save=False, is_vis=False, is_static_BG=False, is_labeled=False):
 
         target_kps = [5, 6, 7, 8, 9, 10]
 
@@ -385,10 +387,14 @@ class skeleton_tools:
             print(skeleton_folder)
             return
 
-        ## smooth
+        ## smooth keypoints
         kp_preds_all = self.__smooth_coordinate(kp_preds_all)
 
         hand_cors = self.__get_hand_cors(kp_preds_all, kp_scores_all, target_kps, is_static_BG)
+
+        ## if clip is already labeled, only one person is labeled in each clip
+        if is_labeled:
+            hand_cors = hand_cors[:1]
 
         img_out_all = []
         for human_id, hand_cor in enumerate(hand_cors):
@@ -420,107 +426,127 @@ class skeleton_tools:
                         cv2.imwrite(os.path.join(out_folder, im_name), img_out)
                     else:
                         img_out_h.append(img_out)
+
             img_out_all.append(img_out_h)
         return img_out_all
 
-    def create_TrainTestlist(self, clip_folder, TrainTest_folder, sample_rate):
 
-        label_map = {'others':'1', 'pick':'2', 'scratch':'3'}
+def create_TrainTestlist(clip_folder, TrainTest_folder, sample_rate):
 
-        Trainlist = []
-        Testlist = []
-        for sub in sorted(os.listdir(clip_folder)):
-            sub_folder = clip_folder + sub
-            count = 0
-            for subsub in sorted(os.listdir(sub_folder)):
-                n_frames = len(os.listdir(sub_folder+'/'+subsub))
-                # if n_frames != 45 and n_frames != 46:
-                #     print(subsub, n_frames)
-                contents = sub + '/' + subsub + ' ' + label_map[sub] + '\n'
-                if sample_rate is None: # only test
+    label_map = {'others':'1', 'pick':'2', 'scratch':'3'}
+
+    Trainlist = []
+    Testlist = []
+    for sub in sorted(os.listdir(clip_folder)):
+        sub_folder = clip_folder + sub
+        count = 0
+        for subsub in sorted(os.listdir(sub_folder)):
+            n_frames = len(os.listdir(sub_folder+'/'+subsub))
+            contents = sub + '/' + subsub + ' ' + label_map[sub] + '\n'
+            if sample_rate is None: # only test
+                Trainlist.append(contents)
+            else:
+                if count % sample_rate == 0: # test
+                    Testlist.append(contents)
+                else: # train
                     Trainlist.append(contents)
-                else:
-                    if count % sample_rate == 0: # test
-                        Testlist.append(contents)
-                    else: # train
-                        Trainlist.append(contents)
 
-                count += 1
-            print(sub, count)
+            count += 1
+        print(sub, count)
 
-        random.shuffle(Trainlist)
-        random.shuffle(Testlist)
+    random.shuffle(Trainlist)
+    random.shuffle(Testlist)
 
-        Trainlist_name = TrainTest_folder + 'trainlist01.txt'
-        Trainlist_file = open(Trainlist_name, 'w')
-        for contents in Trainlist:
-            Trainlist_file.write(contents)
-        Trainlist_file.close()
+    Trainlist_name = TrainTest_folder + 'trainlist01.txt'
+    Trainlist_file = open(Trainlist_name, 'w')
+    for contents in Trainlist:
+        Trainlist_file.write(contents)
+    Trainlist_file.close()
 
-        Testlist_name = TrainTest_folder + 'testlist01.txt'
-        Testlist_file = open(Testlist_name, 'w')
-        for contents in Testlist:
-            Testlist_file.write(contents)
-        Testlist_file.close()
+    Testlist_name = TrainTest_folder + 'testlist01.txt'
+    Testlist_file = open(Testlist_name, 'w')
+    for contents in Testlist:
+        Testlist_file.write(contents)
+    Testlist_file.close()
 
-    def create_Testlist(self, clip_folder, TrainTest_folder):
+def create_Testlist(clip_folder, TrainTest_folder):
 
-        Testlist_name = TrainTest_folder + '/testlist01.txt'
+    Testlist_name = TrainTest_folder + '/testlist01.txt'
 
-        Testlist = open(Testlist_name, 'w')
-        print(clip_folder)
-        for sub in sorted(os.listdir(clip_folder)):
-            sub_folder = clip_folder + sub
-            for subsub in sorted(os.listdir(sub_folder)):
-                contents = sub + '/' + subsub + ' 0' + '\n'
-                Testlist.write(contents)
+    Testlist = open(Testlist_name, 'w')
+    print(clip_folder)
+    for sub in sorted(os.listdir(clip_folder)):
+        sub_folder = clip_folder + sub
+        for subsub in sorted(os.listdir(sub_folder)):
+            contents = sub + '/' + subsub + ' 0' + '\n'
+            Testlist.write(contents)
 
-        Testlist.close()
+    Testlist.close()
 
 
-if __name__ == "__main__":
+def create_clip():
 
     is_static_BG = True
-    # is_static_BG = False
+    if is_static_BG:
+        ske_folder = 'hand_static_BG'
+    else:
+        ske_folder = 'hand_nonStatic_BG'
 
     base_folder = '/media/qcxu/qcxuDisk/Dataset/scratch_dataset/'
     __action__ = ['others', 'pick', 'scratch']
+    bad_others_list = [line.split('\n')[0] for line in open(os.path.join(base_folder, 'bad_others.txt'), 'r')]
 
     # base_folder = '/media/qcxu/qcxuDisk/windows_datasets_all/clips/'
     # __action__ = ['normal', 'clean', 'pick', 'scratch']
 
-
     st = skeleton_tools()
 
-    # for act in __action__:
+    for act in __action__:
 
-    #     base_in_clip_folder = base_folder + act + '/clips/'
-    #     base_skeleton_folder = base_folder + act + '/skeletons/'
-    #     # base_out_clip_folder = base_folder + 'hand/' + act + '/'
-    #     base_out_clip_folder = base_folder + 'hand_static_BG/' + act + '/'
+        is_labeled = True
+        if act == 'others':
+            is_labeled = False
 
-    #     for sub_id, sub in enumerate(os.listdir(base_in_clip_folder)):
+        base_in_clip_folder = base_folder + act + '/clips/'
+        base_skeleton_folder = base_folder + act + '/skeletons/'
+        base_out_clip_folder = base_folder + ske_folder + '/' + act + '/'
 
-    #         if sub != 'Video_11_1_1':
-    #             continue
+        for sub_id, sub in enumerate(os.listdir(base_in_clip_folder)):
 
-    #         if act == 'others' and sub_id % 4 != 0:
-    #             continue
+            if sub in bad_others_list:
+                continue
+                print(sub)
 
-    #         in_clip_folder = base_in_clip_folder + sub
-    #         skeleton_folder = base_skeleton_folder + sub
-    #         out_clip_folder = base_out_clip_folder + act + '_' + sub
+            # if act != 'pick' or sub != 'Video_12_25_1':
+            #     continue
 
-    #         im_name_all, kp_preds_all, kp_scores_all = st.get_valid_skeletons(
-    #             skeleton_folder, in_skeleton_list=None, is_savejson=True)
-    #         st.vis_skeleton(in_clip_folder, skeleton_folder, 'None.json',
-    #             im_name_all, kp_preds_all, kp_scores_all, imglist=None,
-    #             result_labels=None, is_save=True, is_vis=True, thres=0.3)
-    #         st.get_hand_clip(in_clip_folder, skeleton_folder, out_clip_folder, 'None.json',
-    #             im_name_all, kp_preds_all, kp_scores_all, imglist=None,
-    #             is_save=True, is_vis=True, is_static_BG=is_static_BG)
+            if act == 'others':# or sub != 'Video_11_1_1':
+                continue
 
+            if act == 'others' and sub_id % 4 != 0:
+                continue
+
+            print(act, sub)
+
+            in_clip_folder = base_in_clip_folder + sub
+            skeleton_folder = base_skeleton_folder + sub
+            out_clip_folder = base_out_clip_folder + act + '_' + sub
+
+            im_name_all, kp_preds_all, kp_scores_all = st.get_valid_skeletons(
+                skeleton_folder, in_skeleton_list=None, is_savejson=True)
+            st.vis_skeleton(in_clip_folder, skeleton_folder, 'None.json',
+                im_name_all, kp_preds_all, kp_scores_all, imglist=None,
+                result_labels=None, is_save=True, is_vis=True, thres=0.3)
+            st.get_hand_clip(in_clip_folder, skeleton_folder, out_clip_folder, 'None.json',
+                im_name_all, kp_preds_all, kp_scores_all, imglist=None,
+                is_save=True, is_vis=False, is_static_BG=is_static_BG, is_labeled=is_labeled)
+            cv2.waitKey()
+
+
+if __name__ == "__main__":
+
+    # create_clip()
 
     clip_folder = '/media/qcxu/qcxuDisk/Dataset/scratch_dataset/hand_static_BG/'
     TrainTest_folder = '/media/qcxu/qcxuDisk/Dataset/scratch_dataset/TrainTestlist/'
-    st.create_TrainTestlist(clip_folder, TrainTest_folder, sample_rate=None)
+    create_TrainTestlist(clip_folder, TrainTest_folder, sample_rate=None)

@@ -56,6 +56,7 @@ class MSRA_skeleton():
 
         self.time_det = 0.0
         self.num_joints = 17
+        self.target_kps = [5, 6, 7, 8, 9, 10]
 
         # Load yolo detection model
         print('Loading YOLO model..')
@@ -146,7 +147,15 @@ class MSRA_skeleton():
             # compute output heatmap
             output = self.model(input)
             output = output.clone().cpu().numpy()
-            
+
+            # heatmap = output
+            # heatmap_hand = heatmap[0][self.target_kps[0]]
+            # print(heatmap.shape)
+            # for kk in self.target_kps[1:]:
+            #     heatmap_hand += heatmap[0][kk]
+            # cv2.imshow('skeletons', heatmap_hand)
+            # cv2.waitKey()
+
             # compute coordinate
             preds, maxvals = get_final_preds(
                 config, output, np.asarray([c]), np.asarray([s]))

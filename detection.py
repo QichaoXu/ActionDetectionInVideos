@@ -82,8 +82,8 @@ class detection:
         print('\n\n=================== Time Analysis ===================')
 
         time_total = self.time_sk_det + self.time_st + self.time_reg + self.time_vis
-        print('time_skeleton:', '{:.4f}'.format(self.time_sk_det), '{:.4f}'.format(self.time_sk_det / time_total))
         print('time pure skeleton:', '{:.4f}'.format(self.skeleton_det.runtime()))
+        print('time_skeleton:', '{:.4f}'.format(self.time_sk_det), '{:.4f}'.format(self.time_sk_det / time_total))
         print('time_tool:', '{:.4f}'.format(self.time_st), '{:.4f}'.format(self.time_st / time_total))
         print('time_action:', '{:.4f}'.format(self.time_reg), '{:.4f}'.format(self.time_reg / time_total))
         print('time_visualise:', '{:.4f}'.format(self.time_vis), '{:.4f}'.format(self.time_vis / time_total))

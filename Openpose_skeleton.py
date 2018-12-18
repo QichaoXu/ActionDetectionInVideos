@@ -71,7 +71,7 @@ class Openpose_skeleton:
             
             time1 = time.time()
             # keypoints, output_image = self.openpose.forward(img, True)
-            if i % 3 == 0:
+            if i % 9 == 0:
                 keypoints, output_image = self.openpose.forward(img, True)
                 pre_keypoints = keypoints
             else:

@@ -12,20 +12,23 @@ if __name__ == "__main__":
     reg_model_file = 'results-scratch-18-static_BG/save_200.pth'
     # reg_model_file = 'results-scratch-18/save_200.pth'
 
-    skeleton_opt = 'Openpose' #'Alphapose' #'Openpose'
+    skeleton_opt = 'Alphapose' #'Alphapose' #'Openpose'
     is_static_BG = True
-    video_name = '1_7'
-    detection = detection(reg_model_file, skeleton_opt=skeleton_opt, is_vis=False, is_static_BG=is_static_BG, thres=0.0)
+    video_name = 'Video44'
+    video_exp = '.mp4'
+    detection = detection(reg_model_file, skeleton_opt=skeleton_opt, is_vis=False, is_static_BG=is_static_BG, thres=0.7)
 
-    video_path = '/media/qcxu/qcxuDisk/windows_datasets_all/videos_test/small_videos/'
-    input_video_name = video_path+video_name+'.avi'
+    # video_path = '/media/qcxu/qcxuDisk/windows_datasets_all/videos_test/small_videos/'
+    video_path = '/media/qcxu/qcxuDisk/Dataset/scratch_dataset/video_new/'
+    input_video_name = video_path + video_name + video_exp
     print(input_video_name)
     stream = cv2.VideoCapture(input_video_name)
     width = int(stream.get(cv2.CAP_PROP_FRAME_WIDTH))
     height = int(stream.get(cv2.CAP_PROP_FRAME_HEIGHT))
 
+    out_video_name = video_path + video_name + '_'+ skeleton_opt + '_' + str(is_static_BG) + '.avi'
     fourcc = cv2.VideoWriter_fourcc(*'XVID')
-    out = cv2.VideoWriter(video_path+video_name+str(is_static_BG)+'.avi', fourcc, 25.0, (width, height))
+    out = cv2.VideoWriter(out_video_name, fourcc, 25.0, (width, height))
 
     ret = True
     frame_id = 0
