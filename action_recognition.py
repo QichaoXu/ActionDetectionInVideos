@@ -87,6 +87,7 @@ class action_recognition:
 
         self.target_transform = ClassLabel()
 
+        # self.model = torch.nn.DataParallel(self.model, device_ids=[1]).cuda()
         self.model.eval()
 
     def run(self, clip):
@@ -114,19 +115,20 @@ class action_recognition:
 
 if __name__ == '__main__':
 
-    model_file = 'results-scratch-18/save_200.pth'
+    model_file = 'results-scratch-18-static_BG/save_200.pth'
     reg = action_recognition(model_file)
 
-    clip = []
-    base_folder = '/media/qcxu/qcxuDisk/windows_datasets_all/videos_test/small_videos/3_1/C3D_clips/others/002_2'
-    for i in range(1, 46):
-        image_name = 'image_{:05d}.jpg'.format(i)
+    for t in range(100):
+        clip = []
+        base_folder = '/media/qcxu/qcxuDisk/Dataset/scratch_dataset/hand_static_BG/pick/pick_Video_12_4_1_1'
+        for i in range(1, 46):
+            image_name = 'image_{:05d}.jpg'.format(i)
 
-        path = os.path.join(base_folder, image_name)
-        img = cv2.imread(path)
-        image = Image.fromarray(cv2.cvtColor(img,cv2.COLOR_BGR2RGB))  
+            path = os.path.join(base_folder, image_name)
+            img = cv2.imread(path)
+            image = Image.fromarray(cv2.cvtColor(img,cv2.COLOR_BGR2RGB))  
 
-        clip.append(image)
+            clip.append(image)
 
-    label, probs = reg.run(clip)
-    print(label, probs)
+        label, probs = reg.run(clip)
+        print(label, probs)

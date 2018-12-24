@@ -10,7 +10,7 @@ from PIL import Image
 
 
 class detection:
-    def __init__(self, reg_model_file, skeleton_opt='Openpose', is_vis=False, is_static_BG=False, thres=0.5):
+    def __init__(self, reg_model_file, skeleton_opt='Openpose', is_vis=False, waitTime=5, is_static_BG=False, thres=0.5):
 
         if skeleton_opt == 'MSRA':
             from MSRA_skeleton import MSRA_skeleton
@@ -25,6 +25,7 @@ class detection:
             raise Exception('Error: ' + skeleton_opt + ' could not be found')
 
         self.is_vis = is_vis
+        self.waitTime = waitTime
         self.is_static_BG = is_static_BG
         self.thres = thres
 
@@ -54,7 +55,8 @@ class detection:
         #     result_labels=None, is_save=False, is_vis=True, thres=0.3)
         clip_all = self.st.get_hand_clip('None', 'None', 'None', 'None.json',
             im_name_all, kp_preds_all, kp_scores_all, imglist,
-            is_save=False, is_vis=self.is_vis, is_static_BG=self.is_static_BG)
+            is_save=False, is_vis=False, is_static_BG=self.is_static_BG, is_labeled=False, 
+            is_heatmap=False, waitTime=self.waitTime)
         self.time_st += (time.time() - time1)
 
         # run action recornition
@@ -73,7 +75,8 @@ class detection:
         time1 = time.time()
         img_out_all = self.st.vis_skeleton('None', 'None', 'None.json',
             im_name_all, kp_preds_all, kp_scores_all, imglist,
-            result_labels=result_labels, is_save=False, is_vis=True, thres=self.thres)
+            result_labels=result_labels, is_save=False, is_vis=self.is_vis, thres=self.thres,
+            waitTime=self.waitTime)
         self.time_vis += (time.time() - time1)
 
         return img_out_all
@@ -83,6 +86,7 @@ class detection:
 
         time_total = self.time_sk_det + self.time_st + self.time_reg + self.time_vis
         print('time pure skeleton:', '{:.4f}'.format(self.skeleton_det.runtime()))
+        print('time_total:', '{:.4f}'.format(time_total), '{:.4f}'.format(time_total / time_total))
         print('time_skeleton:', '{:.4f}'.format(self.time_sk_det), '{:.4f}'.format(self.time_sk_det / time_total))
         print('time_tool:', '{:.4f}'.format(self.time_st), '{:.4f}'.format(self.time_st / time_total))
         print('time_action:', '{:.4f}'.format(self.time_reg), '{:.4f}'.format(self.time_reg / time_total))

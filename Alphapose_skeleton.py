@@ -179,7 +179,7 @@ if __name__ == "__main__":
 
         for sub_id, sub in enumerate(os.listdir(base_in_clip_folder)):
 
-            if sub != 'Video_11_1_1':
+            if act != 'pick' or sub != 'Video_12_4_1':
                 continue
 
             in_clip_folder = base_in_clip_folder + sub

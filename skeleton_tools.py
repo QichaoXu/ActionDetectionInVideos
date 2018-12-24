@@ -222,7 +222,8 @@ class skeleton_tools:
 
     def vis_skeleton(self, in_clip_folder, skeleton_folder, json_file_name, 
                 im_name_all, kp_preds_all, kp_scores_all, imglist,
-                result_labels=None, is_save=False, is_vis=False, thres=0.75):
+                result_labels=None, is_save=False, is_vis=False, thres=0.75,
+                waitTime=5):
 
         target_kps = [5, 6, 7, 8, 9, 10]
 
@@ -246,7 +247,7 @@ class skeleton_tools:
 
             if is_vis:
                 cv2.imshow('skeletons', img_out)
-                cv2.waitKey(15)
+                cv2.waitKey(waitTime)
 
             if is_save:
                 if result_labels is None:
@@ -372,10 +373,56 @@ class skeleton_tools:
             return img_out
         except:
             return None
+    
+    def __create_heatmap(self, joints, image_size, sigma=5):
+
+        target = np.zeros((self.skeleton_size,
+                           image_size[0],
+                           image_size[1]),
+                          dtype=np.float32)
+
+        tmp_size = sigma * 3
+
+        for joint_id in range(self.skeleton_size):
+            feat_stride = [1, 1]#image_size / image_size
+            mu_x = int(joints[2*joint_id] / feat_stride[0] + 0.5)
+            mu_y = int(joints[2*joint_id+1] / feat_stride[1] + 0.5)
+            # Check that any part of the gaussian is in-bounds
+            ul = [int(mu_x - tmp_size), int(mu_y - tmp_size)]
+            br = [int(mu_x + tmp_size + 1), int(mu_y + tmp_size + 1)]
+            if ul[0] >= image_size[1] or ul[1] >= image_size[0] \
+                    or br[0] < 0 or br[1] < 0:
+                # If not, just return the image as is
+                # target_weight[joint_id] = 0
+                continue
+
+            # # Generate gaussian
+            size = 2 * tmp_size + 1
+            x = np.arange(0, size, 1, np.float32)
+            y = x[:, np.newaxis]
+            x0 = y0 = size // 2
+            # The gaussian is not normalized, we want the center value to equal 1
+            g = np.exp(- ((x - x0) ** 2 + (y - y0) ** 2) / (2 * sigma ** 2))
+
+            # Usable gaussian range
+            g_x = max(0, -ul[0]), min(br[0], image_size[1]) - ul[0]
+            g_y = max(0, -ul[1]), min(br[1], image_size[0]) - ul[1]
+            # Image range
+            img_x = max(0, ul[0]), min(br[0], image_size[1])
+            img_y = max(0, ul[1]), min(br[1], image_size[0])
+
+            v = 1 #target_weight[joint_id]
+            if v > 0.5:
+                target[joint_id][img_y[0]:img_y[1], img_x[0]:img_x[1]] = \
+                    g[g_y[0]:g_y[1], g_x[0]:g_x[1]]
+
+        target = np.sum(target, axis=0)
+        return target[:, :, np.newaxis]
 
     def get_hand_clip(self, in_clip_folder, skeleton_folder, out_clip_folder, json_file_name, 
                 im_name_all, kp_preds_all, kp_scores_all, imglist,
-                is_save=False, is_vis=False, is_static_BG=False, is_labeled=False):
+                is_save=False, is_vis=False, is_static_BG=False, is_labeled=False, 
+                is_heatmap=False, waitTime=5):
 
         target_kps = [5, 6, 7, 8, 9, 10]
 
@@ -397,7 +444,7 @@ class skeleton_tools:
             hand_cors = hand_cors[:1]
 
         img_out_all = []
-        for human_id, hand_cor in enumerate(hand_cors):
+        for h, hand_cor in enumerate(hand_cors):
 
             img_out_h = []
             for i, im_name in enumerate(im_name_all):
@@ -405,6 +452,17 @@ class skeleton_tools:
                     img = cv2.imread(os.path.join(in_clip_folder, im_name))
                 else:
                     img = imglist[i].copy()
+
+                # create heatmap
+                if is_heatmap:
+                    kp_preds_h = kp_preds_all[i][h*2*self.skeleton_size : (h+1)*2*self.skeleton_size]
+
+                    # # plot
+                    # for i in range (self.skeleton_size):
+                    #     cv2.circle(img, (kp_preds_h[2*i], kp_preds_h[2*i+1]), 2, (255, 0, 0), 2)
+                    # cv2.imshow('img', img)
+
+                    img = self.__create_heatmap(kp_preds_h, img.shape)                    
 
                 if is_static_BG:
                     x1, y1, x2, y2 = hand_cor
@@ -417,10 +475,10 @@ class skeleton_tools:
 
                     if is_vis:
                         cv2.imshow('skeletons', img_out)
-                        cv2.waitKey(5)
+                        cv2.waitKey(waitTime)
 
                     if is_save:
-                        out_folder = out_clip_folder + '_' + str(human_id+1)
+                        out_folder = out_clip_folder + '_' + str(h+1)
                         if not os.path.exists(out_folder):
                             os.makedirs(out_folder)
                         cv2.imwrite(os.path.join(out_folder, im_name), img_out)
@@ -515,10 +573,10 @@ def create_clip():
 
             if sub in bad_others_list:
                 continue
-                print(sub)
+                print('bad_others_list', sub)
 
-            # if act != 'pick' or sub != 'Video_12_25_1':
-            #     continue
+            if act != 'pick' or sub != 'Video_12_4_1':
+                continue
 
             if act == 'others':# or sub != 'Video_11_1_1':
                 continue
@@ -530,23 +588,29 @@ def create_clip():
 
             in_clip_folder = base_in_clip_folder + sub
             skeleton_folder = base_skeleton_folder + sub
-            out_clip_folder = base_out_clip_folder + act + '_' + sub
+            out_RGB_clip_folder = base_out_clip_folder + act + '_' + sub
+            # out_map_clip_folder = base_out_clip_folder + act + '_' + sub
 
             im_name_all, kp_preds_all, kp_scores_all = st.get_valid_skeletons(
                 skeleton_folder, in_skeleton_list=None, is_savejson=True)
             st.vis_skeleton(in_clip_folder, skeleton_folder, 'None.json',
                 im_name_all, kp_preds_all, kp_scores_all, imglist=None,
                 result_labels=None, is_save=True, is_vis=True, thres=0.3)
-            st.get_hand_clip(in_clip_folder, skeleton_folder, out_clip_folder, 'None.json',
+            st.get_hand_clip(in_clip_folder, skeleton_folder, out_RGB_clip_folder, 'None.json',
                 im_name_all, kp_preds_all, kp_scores_all, imglist=None,
-                is_save=True, is_vis=False, is_static_BG=is_static_BG, is_labeled=is_labeled)
+                is_save=True, is_vis=True, is_static_BG=is_static_BG, is_labeled=is_labeled, 
+                is_heatmap=False)
+            # st.get_hand_clip(in_clip_folder, skeleton_folder, out_map_clip_folder, 'None.json',
+            #     im_name_all, kp_preds_all, kp_scores_all, imglist=None,
+            #     is_save=True, is_vis=True, is_static_BG=is_static_BG, is_labeled=is_labeled, 
+            #     is_heatmap=True)
             cv2.waitKey()
 
 
 if __name__ == "__main__":
 
-    # create_clip()
+    create_clip()
 
-    clip_folder = '/media/qcxu/qcxuDisk/Dataset/scratch_dataset/hand_static_BG/'
-    TrainTest_folder = '/media/qcxu/qcxuDisk/Dataset/scratch_dataset/TrainTestlist/'
-    create_TrainTestlist(clip_folder, TrainTest_folder, sample_rate=None)
+    # clip_folder = '/media/qcxu/qcxuDisk/Dataset/scratch_dataset/hand_static_BG/'
+    # TrainTest_folder = '/media/qcxu/qcxuDisk/Dataset/scratch_dataset/TrainTestlist/'
+    # create_TrainTestlist(clip_folder, TrainTest_folder, sample_rate=None)

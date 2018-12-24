@@ -71,15 +71,12 @@ class Openpose_skeleton:
             
             time1 = time.time()
             # keypoints, output_image = self.openpose.forward(img, True)
-            if i % 9 == 0:
+            if i % 15 == 0:
                 keypoints, output_image = self.openpose.forward(img, True)
                 pre_keypoints = keypoints
             else:
                 keypoints = pre_keypoints
             self.time_det += (time.time() - time1)
-
-            if keypoints is None or len(keypoints) == 0:
-                skeleton_result = None
 
             skeleton_list.append([im_name.split('/')[-1]])
             if keypoints is not None:

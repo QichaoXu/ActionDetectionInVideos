@@ -329,7 +329,6 @@ if __name__ == '__main__':
         cv2.imshow('res', img)
 
         target = ms.generate_target_points(skeleton_result, img.shape, sigma=5)
-
         target_all = np.sum(target, axis=0)
         cv2.imshow('image3', target_all)
 
