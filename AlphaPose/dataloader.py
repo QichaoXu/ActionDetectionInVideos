@@ -109,11 +109,11 @@ class Image_loader(data.Dataset):
 
 
 class DetectionLoader:
-    def __init__(self, dataset, det_model=None, batchSize=4, queueSize=256):
+    def __init__(self, dataset, det_model=None, cuda_id=None, batchSize=4, queueSize=256):
         # initialize the file video stream along with the boolean
         # used to indicate if the thread should be stopped or not
         if det_model is None:
-            self.det_model = Darknet("yolo/cfg/yolov3.cfg")
+            self.det_model = Darknet('yolo/cfg/yolov3.cfg')
             self.det_model.load_weights('models/yolo/yolov3.weights')
             self.det_model.net_info['height'] = opt.inp_dim
             self.det_inp_dim = int(self.det_model.net_info['height'])
@@ -127,6 +127,8 @@ class DetectionLoader:
             self.det_inp_dim = int(self.det_model.net_info['height'])
             assert self.det_inp_dim % 32 == 0
             assert self.det_inp_dim > 32
+
+        self.cuda_id = cuda_id
 
         self.stopped = False
         self.dataset = dataset
@@ -167,14 +169,20 @@ class DetectionLoader:
                 ht = inp[0].size(1)
                 wd = inp[0].size(2)
                 # Human Detection
-                img = Variable(torch.cat(img)).cuda()
+                if self.cuda_id is None:
+                    img = Variable(torch.cat(img)).cuda()
+                else:
+                    img = Variable(torch.cat(img)).cuda(self.cuda_id)
                 im_dim_list = torch.FloatTensor(im_dim_list).repeat(1,2)
-                im_dim_list = im_dim_list.cuda()
+                if self.cuda_id is None:
+                    im_dim_list = im_dim_list.cuda()
+                else:
+                    im_dim_list = im_dim_list.cuda(self.cuda_id)
 
                 prediction = self.det_model(img, CUDA=True)
                 # NMS process
                 dets = dynamic_write_results(prediction, opt.confidence,
-                                    opt.num_classes, nms=True, nms_conf=opt.nms_thesh)
+                                    opt.num_classes, nms=True, nms_conf=opt.nms_thesh, cuda_id=self.cuda_id)
                 if isinstance(dets, int) or dets.shape[0] == 0:
                     for k in range(len(inp)):
                         while self.Q.full():

@@ -35,8 +35,8 @@ import torch.nn.functional as F
 from PIL import Image
 import cv2
 
-class action_recognition:
-    def __init__(self, model_file):
+class Action_Recognition:
+    def __init__(self, model_file, cuda_id=0):
 
         self.opt = parse_opts()
 
@@ -44,6 +44,7 @@ class action_recognition:
         self.opt.resume_path = os.path.join(self.opt.root_path, model_file)
         self.opt.pretrain_path = os.path.join(self.opt.root_path, 'models/resnet-18-kinetics.pth')
 
+        self.opt.cuda_id = cuda_id
         self.opt.dataset = 'ucf101'
         self.opt.n_classes = 400
         self.opt.n_finetune_classes = 3
@@ -87,7 +88,6 @@ class action_recognition:
 
         self.target_transform = ClassLabel()
 
-        # self.model = torch.nn.DataParallel(self.model, device_ids=[1]).cuda()
         self.model.eval()
 
     def run(self, clip):
@@ -95,14 +95,16 @@ class action_recognition:
         input: clips is continuous frames with length T
         return: action recognition probability
         '''
-
         # prepare dataset
         if self.spatial_transform is not None:
             self.spatial_transform.randomize_parameters()
             clip = [self.spatial_transform(img) for img in clip]
         clip = torch.stack(clip, 0).permute(1, 0, 2, 3)
         clip = clip.unsqueeze(0)
-        inputs = Variable(clip)
+        if self.opt.cuda_id is None:
+            inputs = Variable(clip)
+        else:
+            inputs = Variable(clip.cuda(self.opt.cuda_id))
 
         # run model
         outputs = self.model(inputs)
@@ -116,7 +118,7 @@ class action_recognition:
 if __name__ == '__main__':
 
     model_file = 'results-scratch-18-static_BG/save_200.pth'
-    reg = action_recognition(model_file)
+    reg = Action_Recognition(model_file, cuda_id=1)
 
     for t in range(100):
         clip = []

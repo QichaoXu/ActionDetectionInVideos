@@ -19,9 +19,10 @@ from openpose import *
 
 
 class Openpose_skeleton:
-    def __init__(self):
+    def __init__(self, cuda_id=0):
 
         self.time_det = 0.0
+        self.time_run = 0.0
 
         # Load pose model
         print('Loading Openpose pose model..')
@@ -53,7 +54,9 @@ class Openpose_skeleton:
                     2, 5, 3, 6, 4, 7,
                     9, 12, 10, 13, 11, 14]
 
-    def run(self, folder_or_imglist):
+    def run(self, folder_or_imglist, sample_rate):
+        time_run_start = time.time()
+
         if type(folder_or_imglist) == 'str':
             inputpath = folder_or_imglist
             print(inputpath)
@@ -69,14 +72,13 @@ class Openpose_skeleton:
         for i, img in enumerate(imglist):
             im_name = 'image_{:05d}.jpg'.format(i)
             
-            time1 = time.time()
-            # keypoints, output_image = self.openpose.forward(img, True)
-            if i % 15 == 0:
+            time_det_start = time.time()
+            if i % sample_rate == 0:
                 keypoints, output_image = self.openpose.forward(img, True)
                 pre_keypoints = keypoints
             else:
                 keypoints = pre_keypoints
-            self.time_det += (time.time() - time1)
+            self.time_det += (time.time() - time_det_start)
 
             skeleton_list.append([im_name.split('/')[-1]])
             if keypoints is not None:
@@ -86,10 +88,11 @@ class Openpose_skeleton:
                         skeleton_list[-1].append(int(keypoint[self.order[n]][1]))
                         skeleton_list[-1].append(round(float(keypoint[self.order[n]][2])))
 
+        self.time_run += (time.time() - time_run_start)
         return skeleton_list
 
     def runtime(self):
-        return self.time_det
+        return self.time_det, self.time_run
 
     def save_skeleton(self, skeleton_list, outputpath):
 

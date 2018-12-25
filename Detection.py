@@ -1,7 +1,7 @@
 
 # from Alphapose_skeleton import Alphapose_skeleton
 from skeleton_tools import skeleton_tools
-from action_recognition import action_recognition
+from Action_Recognition import Action_Recognition
 
 import time
 import os
@@ -9,31 +9,34 @@ import cv2
 from PIL import Image
 
 
-class detection:
-    def __init__(self, reg_model_file, skeleton_opt='Openpose', is_vis=False, waitTime=5, is_static_BG=False, thres=0.5):
+class Detection:
+    def __init__(self, reg_model_file, skeleton_opt, cuda_id_list, 
+        sample_rate=1, is_vis=False, waitTime=5, is_static_BG=False, thres=0.5):
+
+        skeleton_cuda_id, reg_cuda_id = cuda_id_list
 
         if skeleton_opt == 'MSRA':
             from MSRA_skeleton import MSRA_skeleton
-            self.skeleton_det = MSRA_skeleton()
+            self.skeleton_det = MSRA_skeleton(cuda_id=skeleton_cuda_id)
         elif skeleton_opt == 'Alphapose':
             from Alphapose_skeleton import Alphapose_skeleton
-            self.skeleton_det = Alphapose_skeleton()
+            self.skeleton_det = Alphapose_skeleton(cuda_id=skeleton_cuda_id)
         elif skeleton_opt == 'Openpose':
             from Openpose_skeleton import Openpose_skeleton
-            self.skeleton_det = Openpose_skeleton()
+            self.skeleton_det = Openpose_skeleton(cuda_id=skeleton_cuda_id)
         else:
             raise Exception('Error: ' + skeleton_opt + ' could not be found')
 
-        self.is_vis = is_vis
-        self.waitTime = waitTime
-        self.is_static_BG = is_static_BG
-        self.thres = thres
-
         self.st = skeleton_tools()
-        self.reg = action_recognition(reg_model_file)
+        self.reg = Action_Recognition(reg_model_file, cuda_id=reg_cuda_id)
         print('=================== Initialized ===================\n\n')
 
-        self.time_sk_det = 0.0
+        self.sample_rate = sample_rate
+        self.is_static_BG = is_static_BG
+        self.waitTime = waitTime
+        self.is_vis = is_vis
+        self.thres = thres
+
         self.time_st = 0.0
         self.time_reg = 0.0
         self.time_vis = 0.0
@@ -42,9 +45,7 @@ class detection:
         ### imglist: list of images read by opencv2
 
         # detect skeleton
-        time1 = time.time()
-        skeleton = self.skeleton_det.run(imglist)
-        self.time_sk_det += (time.time() - time1)
+        skeleton = self.skeleton_det.run(imglist, sample_rate=self.sample_rate)
 
         # prepare hand clip
         time1 = time.time()
@@ -65,10 +66,10 @@ class detection:
         for clip in clip_all:
             clip_PIL = [Image.fromarray(cv2.cvtColor(img, cv2.COLOR_BGR2RGB)) for img in clip]
             if clip_PIL is None or len(clip_PIL) == 0:
-            	result_labels.append([0, [0.0, 0.0, 0.0]])
+                result_labels.append([0, [0.0, 0.0, 0.0]])
             else:
-            	label, probs = self.reg.run(clip_PIL)
-            	result_labels.append([label, probs])
+                label, probs = self.reg.run(clip_PIL)
+                result_labels.append([label, probs])
         self.time_reg += (time.time() - time1)
 
         # visualize result
@@ -84,10 +85,12 @@ class detection:
     def print_runtime(self):
         print('\n\n=================== Time Analysis ===================')
 
-        time_total = self.time_sk_det + self.time_st + self.time_reg + self.time_vis
-        print('time pure skeleton:', '{:.4f}'.format(self.skeleton_det.runtime()))
+        time_pure_det, time_sk_det = self.skeleton_det.runtime()
+
+        time_total = time_sk_det + self.time_st + self.time_reg + self.time_vis
+        print('time pure skeleton:', '{:.4f}'.format(time_pure_det))
         print('time_total:', '{:.4f}'.format(time_total), '{:.4f}'.format(time_total / time_total))
-        print('time_skeleton:', '{:.4f}'.format(self.time_sk_det), '{:.4f}'.format(self.time_sk_det / time_total))
+        print('time_skeleton:', '{:.4f}'.format(time_sk_det), '{:.4f}'.format(time_sk_det / time_total))
         print('time_tool:', '{:.4f}'.format(self.time_st), '{:.4f}'.format(self.time_st / time_total))
         print('time_action:', '{:.4f}'.format(self.time_reg), '{:.4f}'.format(self.time_reg / time_total))
         print('time_visualise:', '{:.4f}'.format(self.time_vis), '{:.4f}'.format(self.time_vis / time_total))
@@ -96,7 +99,8 @@ class detection:
 if __name__ == "__main__":
 
     reg_model_file = 'results-scratch-18/save_200.pth'
-    detection = detection(reg_model_file, skeleton_opt='Openpose', is_vis=False, is_static_BG=False, thres=0.9)
+    detection = Detection(reg_model_file, skeleton_opt='Openpose', 
+        is_vis=False, waitTime=5, is_static_BG=False, thres=0.9)
 
     base_folder = '/media/qcxu/qcxuDisk/Dataset/scratch_dataset/others/clips/Video_11_1_1'
     imglist = []

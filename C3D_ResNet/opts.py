@@ -188,6 +188,12 @@ def parse_opts():
         '--no_cuda', action='store_true', help='If true, cuda is not used.')
     parser.set_defaults(no_cuda=False)
     parser.add_argument(
+        '--cuda_id', 
+        default=None, 
+        type=int, 
+        help='GPU id.')
+    parser.set_defaults(cuda_id=None)
+    parser.add_argument(
         '--n_threads',
         default=4,
         type=int,

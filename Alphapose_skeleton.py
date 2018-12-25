@@ -43,16 +43,19 @@ args.dataset = 'coco'
 
 
 class Alphapose_skeleton:
-    def __init__(self):
+    def __init__(self, cuda_id=0):
 
         self.time_det = 0.0
+        self.time_run = 0.0
+
+        self.cuda_id = cuda_id
         self.target_kps = [5, 6, 7, 8, 9, 10]
 
         # Load yolo detection model
         print('Loading YOLO model..')
-        self.det_model = Darknet("AlphaPose/yolo/cfg/yolov3.cfg")
+        self.det_model = Darknet('AlphaPose/yolo/cfg/yolov3.cfg', self.cuda_id)
         self.det_model.load_weights('AlphaPose/models/yolo/yolov3.weights')
-        self.det_model.cuda()
+        self.det_model.cuda(self.cuda_id)
         self.det_model.eval()
 
         # Load pose model
@@ -62,11 +65,13 @@ class Alphapose_skeleton:
             self.pose_model = InferenNet_fast(4 * 1 + 1, pose_dataset)
         else:
             self.pose_model = InferenNet(4 * 1 + 1, pose_dataset)
-        self.pose_model.cuda()
+        self.pose_model.cuda(self.cuda_id)
         self.pose_model.eval()
 
 
-    def run(self, folder_or_imglist, heatmap_folder=None):
+    def run(self, folder_or_imglist, sample_rate, heatmap_folder=None):
+        time_run_start = time.time()
+
         if type(folder_or_imglist) == 'str':
             inputpath = folder_or_imglist
             print(inputpath)
@@ -74,16 +79,16 @@ class Alphapose_skeleton:
 
             # Load input images
             im_names = [img for img in sorted(os.listdir(inputpath)) if img.endswith('jpg')]
+            N = len(im_names)
             dataset = Image_loader(im_names, format='yolo')
         else:
-            imglist = folder_or_imglist
+            N = len(folder_or_imglist)
+            imglist = [img for i, img in enumerate(folder_or_imglist) if i % sample_rate == 0]
             dataset = Image_loader_from_images(imglist, format='yolo')
 
         # Load detection loader
-        test_loader = DetectionLoader(dataset, self.det_model).start()
-
-        skeleton_list = []
-        # final_result = []
+        test_loader = DetectionLoader(dataset, self.det_model, self.cuda_id).start()
+        skeleton_result_list = []
         for i in range(dataset.__len__()):
             with torch.no_grad():
                 (inp, orig_img, im_name, boxes, scores) = test_loader.read()
@@ -92,9 +97,9 @@ class Alphapose_skeleton:
                     skeleton_result = None
                 else:
                     # Pose Estimation
-                    time1 = time.time()
+                    time_det_start = time.time()
                     inps, pt1, pt2 = crop_from_dets(inp, boxes)
-                    inps = Variable(inps.cuda())
+                    inps = Variable(inps.cuda(self.cuda_id))
 
                     hm = self.pose_model(inps)
                     hm_data = hm.cpu().data
@@ -125,29 +130,35 @@ class Alphapose_skeleton:
                             hm_data, pt1, pt2, args.inputResH, args.inputResW, args.outputResH, args.outputResW)
 
                     skeleton_result = pose_nms(boxes, scores, preds_img, preds_scores)
-                    self.time_det += (time.time() - time1)
+                    self.time_det += (time.time() - time_det_start)
 
-                # results = {
-                #         'imgname': im_name.split('/')[-1],
-                #         'result': skeleton_result
-                #     }
-                # final_result.append(results)
+                skeleton_result_list.append(skeleton_result)
 
-                skeleton_list.append([im_name.split('/')[-1]])
-                if skeleton_result is not None:
-                    for human in skeleton_result:
-                        kp_preds = human['keypoints']
-                        kp_scores = human['kp_score']
+        skeleton_list = []
+        j = 0
+        for i in range(N):
+            im_name = 'image_{:05d}.jpg'.format(i)
 
-                        for n in range(kp_scores.shape[0]):
-                            skeleton_list[-1].append(int(kp_preds[n, 0]))
-                            skeleton_list[-1].append(int(kp_preds[n, 1]))
-                            skeleton_list[-1].append(round(float(kp_scores[n]), 2))
+            if (i == sample_rate * (1+j)):
+                j += 1
+            skeleton_result = skeleton_result_list[j]
 
+            skeleton_list.append([im_name.split('/')[-1]])
+            if skeleton_result is not None:
+                for human in skeleton_result:
+                    kp_preds = human['keypoints']
+                    kp_scores = human['kp_score']
+
+                    for n in range(kp_scores.shape[0]):
+                        skeleton_list[-1].append(int(kp_preds[n, 0]))
+                        skeleton_list[-1].append(int(kp_preds[n, 1]))
+                        skeleton_list[-1].append(round(float(kp_scores[n]), 2))
+
+        self.time_run += (time.time() - time_run_start)
         return skeleton_list
 
     def runtime(self):
-        return self.time_det
+        return self.time_det, self.time_run
 
     def save_skeleton(self, skeleton_list, outputpath):
 

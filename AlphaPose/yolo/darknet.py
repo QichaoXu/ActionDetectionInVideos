@@ -91,15 +91,16 @@ class EmptyLayer(nn.Module):
         
 
 class DetectionLayer(nn.Module):
-    def __init__(self, anchors):
+    def __init__(self, anchors, cuda_id):
         super(DetectionLayer, self).__init__()
         self.anchors = anchors
+        self.cuda_id = cuda_id
     
     def forward(self, x, inp_dim, num_classes, confidence):
         x = x.data
         global CUDA
         prediction = x
-        prediction = predict_transform(prediction, inp_dim, self.anchors, num_classes, confidence, CUDA)
+        prediction = predict_transform(prediction, inp_dim, self.anchors, num_classes, confidence, CUDA, self.cuda_id)
         return prediction
         
 
@@ -144,7 +145,7 @@ class ReOrgLayer(nn.Module):
         return x
 
 
-def create_modules(blocks):
+def create_modules(blocks, cuda_id=0):
     net_info = blocks[0]     #Captures the information about the input and pre-processing    
     
     module_list = nn.ModuleList()
@@ -272,7 +273,7 @@ def create_modules(blocks):
             anchors = [(anchors[i], anchors[i+1]) for i in range(0, len(anchors),2)]
             anchors = [anchors[i] for i in mask]
             
-            detection = DetectionLayer(anchors)
+            detection = DetectionLayer(anchors, cuda_id)
             module.add_module("Detection_{}".format(index), detection)
         
             
@@ -293,13 +294,13 @@ def create_modules(blocks):
 
 
 class Darknet(nn.Module):
-    def __init__(self, cfgfile):
+    def __init__(self, cfgfile, cuda_id=0):
         super(Darknet, self).__init__()
         self.blocks = parse_cfg(cfgfile)
-        self.net_info, self.module_list = create_modules(self.blocks)
+        self.net_info, self.module_list = create_modules(self.blocks, cuda_id)
         self.header = torch.IntTensor([0,0,0,0])
         self.seen = 0
-
+        self.cuda_id = cuda_id
         
         
     def get_blocks(self):
@@ -364,7 +365,7 @@ class Darknet(nn.Module):
                 
                 #Output the result
                 x = x.data
-                x = predict_transform(x, inp_dim, anchors, num_classes, CUDA)
+                x = predict_transform(x, inp_dim, anchors, num_classes, CUDA, self.cuda_id)
                 
                 if type(x) == int:
                     continue

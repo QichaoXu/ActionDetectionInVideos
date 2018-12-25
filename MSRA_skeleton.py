@@ -52,9 +52,11 @@ from yolo.darknet import Darknet
 
 
 class MSRA_skeleton():
-    def __init__(self):
+    def __init__(self, cuda_id=0):
 
         self.time_det = 0.0
+        self.time_run = 0.0
+
         self.num_joints = 17
         self.target_kps = [5, 6, 7, 8, 9, 10]
 
@@ -163,6 +165,8 @@ class MSRA_skeleton():
             return preds[0]
 
     def run(self, folder_or_imglist):
+        time_run_start = time.time()
+
         if type(folder_or_imglist) == 'str':
             inputpath = folder_or_imglist
             print(inputpath)
@@ -189,12 +193,12 @@ class MSRA_skeleton():
                     skeleton_result = None
                 else:
                     # Pose Estimation
-                    time1 = time.time()
+                    time_det_start = time.time()
                     for box in boxes.tolist():
                         x1, y1, x2, y2 = int(box[0]), int(box[1]), int(box[2]), int(box[3])
                         box = [x1, y1, x2-x1, y2-y1]
                         skeleton_result.append(self.detect_skeleton_on_single_human(orig_img, box))
-                    self.time_det += (time.time() - time1)
+                    self.time_det += (time.time() - time_det_start)
 
                 skeleton_list.append([im_name.split('/')[-1]])
                 if skeleton_result is not None:
@@ -204,10 +208,11 @@ class MSRA_skeleton():
                             skeleton_list[-1].append(int(mat[1]))
                             skeleton_list[-1].append(0.8)
 
+        self.time_run += (time.time() - time_run_start)
         return skeleton_list
 
     def runtime(self):
-        return self.time_det
+        return self.time_det, self.time_run
 
     def generate_target_points(self, joints, image_size, sigma):
         '''

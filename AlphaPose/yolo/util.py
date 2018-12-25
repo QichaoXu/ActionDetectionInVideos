@@ -26,7 +26,7 @@ def convert2cpu(matrix):
     else:
         return matrix
 
-def predict_transform(prediction, inp_dim, anchors, num_classes, CUDA = True):
+def predict_transform(prediction, inp_dim, anchors, num_classes, CUDA=True, cuda_id=0):
     batch_size = prediction.size(0)
     stride =  inp_dim // prediction.size(2)
     grid_size = inp_dim // stride
@@ -57,8 +57,8 @@ def predict_transform(prediction, inp_dim, anchors, num_classes, CUDA = True):
     y_offset = torch.FloatTensor(b).view(-1,1)
     
     if CUDA:
-        x_offset = x_offset.cuda()
-        y_offset = y_offset.cuda()
+        x_offset = x_offset.cuda(cuda_id)
+        y_offset = y_offset.cuda(cuda_id)
     
     x_y_offset = torch.cat((x_offset, y_offset), 1).repeat(1,num_anchors).view(-1,2).unsqueeze(0)
     
@@ -68,7 +68,7 @@ def predict_transform(prediction, inp_dim, anchors, num_classes, CUDA = True):
     anchors = torch.FloatTensor(anchors)
     
     if CUDA:
-        anchors = anchors.cuda()
+        anchors = anchors.cuda(cuda_id)
     
     anchors = anchors.repeat(grid_size*grid_size, 1).unsqueeze(0)
     prediction[:,:,2:4] = torch.exp(prediction[:,:,2:4])*anchors
@@ -101,20 +101,20 @@ def unique(tensor):
     return tensor_res
 
 
-def dynamic_write_results(prediction, confidence, num_classes, nms=True, nms_conf=0.4):
+def dynamic_write_results(prediction, confidence, num_classes, nms=True, nms_conf=0.4, cuda_id=0):
     prediction_bak = prediction.clone()
-    dets = write_results(prediction.clone(), confidence, num_classes, nms, nms_conf)
+    dets = write_results(prediction.clone(), confidence, num_classes, nms, nms_conf, cuda_id)
     if isinstance(dets, int):
         return dets
 
     if dets.shape[0] > 100:
         nms_conf -= 0.05
-        dets = write_results(prediction_bak.clone(), confidence, num_classes, nms, nms_conf)
+        dets = write_results(prediction_bak.clone(), confidence, num_classes, nms, nms_conf, cuda_id)
 
     return dets
 
 
-def write_results(prediction, confidence, num_classes, nms=True, nms_conf=0.4):
+def write_results(prediction, confidence, num_classes, nms=True, nms_conf=0.4, cuda_id=0):
     conf_mask = (prediction[:,:,4] > confidence).float().unsqueeze(2)
     prediction = prediction*conf_mask
 
@@ -182,7 +182,7 @@ def write_results(prediction, confidence, num_classes, nms=True, nms_conf=0.4):
                     #Get the IOUs of all boxes that come after the one we are looking at 
                     #in the loop
                     try:
-                        ious = bbox_iou(image_pred_class[i].unsqueeze(0), image_pred_class[i+1:])
+                        ious = bbox_iou(image_pred_class[i].unsqueeze(0), image_pred_class[i+1:], cuda_id)
                     except ValueError:
                         break
 
