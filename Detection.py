@@ -11,7 +11,7 @@ from PIL import Image
 
 class Detection:
     def __init__(self, reg_model_file, skeleton_opt, cuda_id_list, 
-        sample_rate=1, is_vis=False, waitTime=5, is_static_BG=False, thres=0.5):
+        sample_duration, sample_rate=1, is_vis=False, waitTime=5, is_static_BG=False, thres=0.5):
 
         skeleton_cuda_id, reg_cuda_id = cuda_id_list
 
@@ -28,7 +28,7 @@ class Detection:
             raise Exception('Error: ' + skeleton_opt + ' could not be found')
 
         self.st = skeleton_tools()
-        self.reg = Action_Recognition(reg_model_file, cuda_id=reg_cuda_id)
+        self.reg = Action_Recognition(reg_model_file, sample_duration, cuda_id=reg_cuda_id)
         print('=================== Initialized ===================\n\n')
 
         self.sample_rate = sample_rate

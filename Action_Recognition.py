@@ -36,7 +36,7 @@ from PIL import Image
 import cv2
 
 class Action_Recognition:
-    def __init__(self, model_file, cuda_id=0):
+    def __init__(self, model_file, sample_duration, cuda_id=0):
 
         self.opt = parse_opts()
 
@@ -52,7 +52,7 @@ class Action_Recognition:
         self.opt.model = 'resnet'
         self.opt.model_depth = 18
         self.opt.resnet_shortcut = 'A'
-        self.opt.sample_duration = 45
+        self.opt.sample_duration = sample_duration
         self.opt.batch_size = 1
         self.opt.n_threads = 1
         self.opt.checkpoint = 5

@@ -15,7 +15,7 @@ def demo_video(is_save_avi=False):
     reg_model_file = 'results-scratch-18-static_BG/save_200.pth'
     skeleton_opt = 'Alphapose' #'Alphapose' #'Openpose'
     det = Detection(reg_model_file, skeleton_opt, cuda_id_list=[1,0],
-        sample_rate=15, is_vis=True, waitTime=5, is_static_BG=True, thres=0.7)
+        sample_duration=T, sample_rate=15, is_vis=True, waitTime=5, is_static_BG=True, thres=0.7)
 
     video_path = '/media/qcxu/qcxuDisk/Dataset/scratch_dataset/video_new/'
     video_name = 'Video44'
@@ -79,13 +79,13 @@ def demo_video(is_save_avi=False):
 
 def demo_video_multiThreads(is_save_avi=False):
 
-    T = 45
+    T = 30
 
-    reg_model_file = 'results-scratch-18-static_BG/save_200.pth'
+    reg_model_file = 'results-scratch-18-static_BG_30/save_20.pth'
     skeleton_opt = 'Alphapose' #'Alphapose' #'Openpose'
     queue_imglist = Queue()
     det = DetectionMultiThreads(queue_imglist, reg_model_file, skeleton_opt, cuda_id_list=[1,0],
-        sample_rate=9, is_vis=True, waitTime=23, is_static_BG=True, thres=0.7)
+        sample_duration=T, sample_rate=9, is_vis=True, waitTime=23, is_static_BG=True, thres=0.7)
     det.start()
 
     video_path = '/media/qcxu/qcxuDisk/Dataset/scratch_dataset/video_new/'

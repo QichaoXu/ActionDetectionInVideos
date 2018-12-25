@@ -82,10 +82,6 @@ class skeleton_tools:
                 result_prob = result_labels[h][1][2]
                 if cls_map[result_cls_id] == 'scratch' and result_prob > thres:
 
-                    # put text
-                    # cv2.putText(img, '{}:{:.3f}'.format(cls_map[result_cls_id], result_prob), 
-                    #     (int(cor_x), int(cor_y)), cv2.FONT_HERSHEY_COMPLEX, 1, (0,0,255), 2)
-
                     # Draw rectangle
                     x1, y1, x2, y2 = 1000, 1000, 0, 0
                     for i in target_kps:
@@ -94,6 +90,10 @@ class skeleton_tools:
                         x2 = max(x2, int(kp_preds_h[2*i]))
                         y2 = max(y2, int(kp_preds_h[2*i+1]))
                     cv2.rectangle(img, (x1, y1), (x2, y2), (0,0,255), 2)
+
+                    # put text
+                    # cv2.putText(img, '{}:{:.3f}'.format(cls_map[result_cls_id], result_prob), 
+                    #     (int(cor_x), int(cor_y)), cv2.FONT_HERSHEY_COMPLEX, 1, (0,0,255), 2)
 
                     # # Draw limbs
                     # part_line = {}
@@ -488,6 +488,7 @@ class skeleton_tools:
                         out_folder = out_clip_folder + '_' + str(h+1)
                         if not os.path.exists(out_folder):
                             os.makedirs(out_folder)
+                        print(img_out.shape)
                         cv2.imwrite(os.path.join(out_folder, im_name), img_out)
                     else:
                         img_out_h.append(img_out)
@@ -596,22 +597,21 @@ def create_clip():
             in_clip_folder = base_in_clip_folder + sub
             skeleton_folder = base_skeleton_folder + sub
             out_RGB_clip_folder = base_out_clip_folder + act + '_' + sub
-            # out_map_clip_folder = base_out_clip_folder + act + '_' + sub
+            out_map_clip_folder = base_out_clip_folder + act + '_' + sub + '_heatmap'
 
             im_name_all, kp_preds_all, kp_scores_all = st.get_valid_skeletons(
                 skeleton_folder, in_skeleton_list=None, is_savejson=True)
-            st.vis_skeleton(in_clip_folder, skeleton_folder, 'None.json',
-                im_name_all, kp_preds_all, kp_scores_all, imglist=None,
-                result_labels=None, is_save=True, is_vis=True, thres=0.3)
-            st.get_hand_clip(in_clip_folder, skeleton_folder, out_RGB_clip_folder, 'None.json',
-                im_name_all, kp_preds_all, kp_scores_all, imglist=None,
-                is_save=True, is_vis=True, is_static_BG=is_static_BG, is_labeled=is_labeled, 
-                is_heatmap=False)
-            # st.get_hand_clip(in_clip_folder, skeleton_folder, out_map_clip_folder, 'None.json',
+            # st.vis_skeleton(in_clip_folder, skeleton_folder, 'None.json',
+            #     im_name_all, kp_preds_all, kp_scores_all, imglist=None,
+            #     result_labels=None, is_save=True, is_vis=True, thres=0.3)
+            # st.get_hand_clip(in_clip_folder, skeleton_folder, out_RGB_clip_folder, 'None.json',
             #     im_name_all, kp_preds_all, kp_scores_all, imglist=None,
             #     is_save=True, is_vis=True, is_static_BG=is_static_BG, is_labeled=is_labeled, 
-            #     is_heatmap=True)
-            cv2.waitKey()
+            #     is_heatmap=False)
+            st.get_hand_clip(in_clip_folder, skeleton_folder, out_map_clip_folder, 'None.json',
+                im_name_all, kp_preds_all, kp_scores_all, imglist=None,
+                is_save=True, is_vis=True, is_static_BG=is_static_BG, is_labeled=is_labeled, 
+                is_heatmap=True)
 
 
 if __name__ == "__main__":

@@ -120,7 +120,7 @@ class SkeletonVisThreads(threading.Thread):
 
 class DetectionMultiThreads(threading.Thread):
     def __init__(self, queue_imglist, reg_model_file, skeleton_opt, cuda_id_list, 
-        sample_rate=1, is_vis=False, waitTime=5, is_static_BG=False, thres=0.5):
+        sample_duration, sample_rate=1, is_vis=False, waitTime=5, is_static_BG=False, thres=0.5):
 
         threading.Thread.__init__(self)
 
@@ -139,7 +139,7 @@ class DetectionMultiThreads(threading.Thread):
             raise Exception('Error: ' + skeleton_opt + ' could not be found')
 
         st = skeleton_tools()
-        reg = Action_Recognition(reg_model_file, reg_cuda_id)
+        reg = Action_Recognition(reg_model_file, sample_duration, reg_cuda_id)
         print('=================== Initialized ===================\n\n')
 
         self.queue_imglist = queue_imglist
