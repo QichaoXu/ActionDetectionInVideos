@@ -79,30 +79,37 @@ class skeleton_tools:
 
                 cls_map = ['others', 'pick', 'scratch']
                 result_cls_id = int(result_labels[h][0])
-                result_prob = result_labels[h][1][2] #[result_cls_id]
-                if cls_map[result_cls_id] == 'scratch' and result_prob > thres: 
-                # if result_prob > thres: 
-                    cv2.putText(img, '{}:{:.3f}'.format(cls_map[result_cls_id], result_prob), 
-                        (int(cor_x), int(cor_y)), cv2.FONT_HERSHEY_COMPLEX, 1, (0,0,255), 2)
+                result_prob = result_labels[h][1][2]
+                if cls_map[result_cls_id] == 'scratch' and result_prob > thres:
 
-                    part_line = {}
-                    for n in range(len(kp_scores_h)):
-                        # if float(kp_scores_h[n]) <= 0.05:
-                        #     continue
+                    # put text
+                    # cv2.putText(img, '{}:{:.3f}'.format(cls_map[result_cls_id], result_prob), 
+                    #     (int(cor_x), int(cor_y)), cv2.FONT_HERSHEY_COMPLEX, 1, (0,0,255), 2)
 
-                        cor_x, cor_y = int(kp_preds_h[2*n]), int(kp_preds_h[2*n+1])
-                        part_line[n] = (cor_x, cor_y)
+                    # Draw rectangle
+                    x1, y1, x2, y2 = 1000, 1000, 0, 0
+                    for i in target_kps:
+                        x1 = min(x1, int(kp_preds_h[2*i]))
+                        y1 = min(y1, int(kp_preds_h[2*i+1]))
+                        x2 = max(x2, int(kp_preds_h[2*i]))
+                        y2 = max(y2, int(kp_preds_h[2*i+1]))
+                    cv2.rectangle(img, (x1, y1), (x2, y2), (0,0,255), 2)
 
-                    # Draw limbs
-                    for i, (start_p, end_p) in enumerate(l_pair):
-                        if i not in target_kps:
-                            continue
-                            
-                        if start_p in part_line and end_p in part_line:
-                            start_xy = part_line[start_p]
-                            end_xy = part_line[end_p]
-                            cv2.line(img, start_xy, end_xy, line_color[i], 
-                                int(2*(float(kp_scores_h[start_p]) + float(kp_scores_h[end_p])) + 1))
+                    # # Draw limbs
+                    # part_line = {}
+                    # for n in range(len(kp_scores_h)):
+                    #     cor_x, cor_y = int(kp_preds_h[2*n]), int(kp_preds_h[2*n+1])
+                    #     part_line[n] = (cor_x, cor_y)
+
+                    # for i, (start_p, end_p) in enumerate(l_pair):
+                    #     if i not in target_kps:
+                    #         continue
+
+                    #     if start_p in part_line and end_p in part_line:
+                    #         start_xy = part_line[start_p]
+                    #         end_xy = part_line[end_p]
+                    #         cv2.line(img, start_xy, end_xy, line_color[i], 
+                    #             int(2*(float(kp_scores_h[start_p]) + float(kp_scores_h[end_p])) + 1))
             return img
 
     def __get_pred_score(self, kp):

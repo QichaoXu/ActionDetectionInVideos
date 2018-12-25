@@ -31,7 +31,7 @@ class SkeletonToolThreads(threading.Thread):
     def run(self):
         while True:
             imglist, skeleton = self.queue_skeleton.get()
-            print('SkeletonToolThreads get', len(skeleton))
+            print('queue_skeleton get', self.queue_skeleton.qsize())
             if isinstance(skeleton, str) and skeleton == 'quit':
                 break
 
@@ -42,8 +42,8 @@ class SkeletonToolThreads(threading.Thread):
                 is_save=False, is_vis=False, is_static_BG=self.is_static_BG, is_labeled=False, 
                 is_heatmap=False, waitTime=self.waitTime)
 
-            print('SkeletonToolThreads put', len(clip_all))
             self.queue_clip_all.put([clip_all, im_name_all, kp_preds_all, kp_scores_all, imglist])
+            print('queue_clip_all put', self.queue_clip_all.qsize())
 
         self.queue_clip_all.put(['quit', 'quit', 'quit', 'quit', 'quit'])
         self.action_recognition_threads.join()
@@ -67,7 +67,7 @@ class ActionRecognitionThreads(threading.Thread):
     def run(self):
         while True:
             clip_all, im_name_all, kp_preds_all, kp_scores_all, imglist = self.queue_clip_all.get()
-            print('ActionRecognitionThreads get', len(clip_all))
+            print('queue_clip_all get', self.queue_clip_all.qsize())
             if isinstance(clip_all, str) and clip_all == 'quit':
                 break
 
@@ -80,8 +80,8 @@ class ActionRecognitionThreads(threading.Thread):
                     label, probs = self.reg.run(clip_PIL)
                     result_labels.append([label, probs])
 
-            print('ActionRecognitionThreads put', len(result_labels))
             self.queue_result_labels.put([result_labels, im_name_all, kp_preds_all, kp_scores_all, imglist])
+            print('queue_result_labels put', self.queue_result_labels.qsize())
 
         self.queue_result_labels.put(['quit', 'quit', 'quit', 'quit', 'quit'])
         self.skeleton_vis_threads.join()
@@ -103,7 +103,7 @@ class SkeletonVisThreads(threading.Thread):
     def run(self):
         while True:
             result_labels, im_name_all, kp_preds_all, kp_scores_all, imglist = self.queue_result_labels.get()
-            print('SkeletonVisThreads get', len(result_labels))
+            print('queue_result_labels get', self.queue_result_labels.qsize())
             if isinstance(result_labels, str) and result_labels == 'quit':
                 break
 
@@ -112,7 +112,7 @@ class SkeletonVisThreads(threading.Thread):
                 result_labels=result_labels, is_save=False, is_vis=self.is_vis, thres=self.thres,
                 waitTime=self.waitTime)
 
-            print('SkeletonVisThreads put', len(img_out_all))
+            # print('SkeletonVisThreads put', len(img_out_all))
             # self.queue_img_out_all.put(img_out_all)
 
         print('=================== finish SkeletonVisThreads ===================')
@@ -155,14 +155,14 @@ class DetectionMultiThreads(threading.Thread):
     def run(self):
         while True:
             imglist = self.queue_imglist.get()
-            print('SkeletonDetThreads get', len(imglist))
+            print('queue_imglist get', self.queue_imglist.qsize())
             if isinstance(imglist, str) and imglist == 'quit':
                 break
 
             skeleton = self.skeleton_det.run(imglist, self.sample_rate)
 
-            print('SkeletonDetThreads put', len(skeleton))
             self.queue_skeleton.put([imglist, skeleton])
+            print('queue_skeleton put', self.queue_skeleton.qsize())
 
         self.queue_skeleton.put(['quit', 'quit'])
         self.skeleton_tool_threads.join()
