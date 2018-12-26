@@ -1,5 +1,4 @@
 
-# from Alphapose_skeleton import Alphapose_skeleton
 from skeleton_tools import skeleton_tools
 from Action_Recognition import Action_Recognition
 
@@ -16,8 +15,8 @@ class Detection:
         skeleton_cuda_id, reg_cuda_id = cuda_id_list
 
         if skeleton_opt == 'MSRA':
-            from MSRA_skeleton import MSRA_skeleton
-            self.skeleton_det = MSRA_skeleton(cuda_id=skeleton_cuda_id)
+            from MSRApose_skeleton import MSRApose_skeleton
+            self.skeleton_det = MSRApose_skeleton(cuda_id=skeleton_cuda_id)
         elif skeleton_opt == 'Alphapose':
             from Alphapose_skeleton import Alphapose_skeleton
             self.skeleton_det = Alphapose_skeleton(cuda_id=skeleton_cuda_id)

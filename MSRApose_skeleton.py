@@ -51,7 +51,7 @@ from dataloader import *
 from yolo.darknet import Darknet
 
 
-class MSRA_skeleton():
+class MSRApose_skeleton():
     def __init__(self, cuda_id=0):
 
         self.time_det = 0.0
@@ -309,7 +309,7 @@ if __name__ == '__main__':
 
     # box = [450, 160, 350, 560]
 
-    ms = MSRA_skeleton()
+    ms = MSRApose_skeleton()
 
     input_folder = '/media/qcxu/qcxuDisk/Dataset/scratch_dataset/pick/clips/Video_12_4_1'
     

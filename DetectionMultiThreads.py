@@ -1,5 +1,4 @@
 
-# from Alphapose_skeleton import Alphapose_skeleton
 from skeleton_tools import skeleton_tools
 from Action_Recognition import Action_Recognition
 
@@ -14,7 +13,7 @@ from multiprocessing import Queue
 
 class SkeletonToolThreads(threading.Thread):
     def __init__(self, queue_skeleton, st, reg, 
-        is_vis, waitTime, is_static_BG, thres):
+        is_vis, waitTime, is_static_BG, thres, out):
 
         threading.Thread.__init__(self)
         self.queue_skeleton = queue_skeleton
@@ -25,7 +24,7 @@ class SkeletonToolThreads(threading.Thread):
 
         self.queue_clip_all = Queue()
         self.action_recognition_threads = ActionRecognitionThreads(self.queue_clip_all, st, reg,
-            is_vis, waitTime, thres)
+            is_vis, waitTime, thres, out)
         self.action_recognition_threads.start()
 
     def run(self):
@@ -51,8 +50,7 @@ class SkeletonToolThreads(threading.Thread):
 
 
 class ActionRecognitionThreads(threading.Thread):
-    def __init__(self, queue_clip_all, st, reg,
-        is_vis, waitTime, thres):
+    def __init__(self, queue_clip_all, st, reg, is_vis, waitTime, thres, out):
 
         threading.Thread.__init__(self)
         self.queue_clip_all = queue_clip_all
@@ -61,7 +59,7 @@ class ActionRecognitionThreads(threading.Thread):
 
         self.queue_result_labels = Queue()
         self.skeleton_vis_threads = SkeletonVisThreads(self.queue_result_labels, st,
-            is_vis, waitTime, thres)
+            is_vis, waitTime, thres, out)
         self.skeleton_vis_threads.start()
 
     def run(self):
@@ -89,7 +87,7 @@ class ActionRecognitionThreads(threading.Thread):
 
 
 class SkeletonVisThreads(threading.Thread):
-    def __init__(self, queue_result_labels, st, is_vis, waitTime, thres):
+    def __init__(self, queue_result_labels, st, is_vis, waitTime, thres, out):
         threading.Thread.__init__(self)
         self.queue_result_labels = queue_result_labels
 
@@ -98,7 +96,7 @@ class SkeletonVisThreads(threading.Thread):
         self.thres = thres
         self.waitTime = waitTime
 
-        # self.queue_img_out_all = Queue()
+        self.out = out
 
     def run(self):
         while True:
@@ -112,23 +110,27 @@ class SkeletonVisThreads(threading.Thread):
                 result_labels=result_labels, is_save=False, is_vis=self.is_vis, thres=self.thres,
                 waitTime=self.waitTime)
 
-            # print('SkeletonVisThreads put', len(img_out_all))
-            # self.queue_img_out_all.put(img_out_all)
+            if self.out is not None:
+                for img_out in img_out_all:
+                    self.out.write(img_out)
+            print('SkeletonVisThreads write', len(img_out_all))
 
+        if self.out is not None:
+            self.out.release()
         print('=================== finish SkeletonVisThreads ===================')
 
 
 class DetectionMultiThreads(threading.Thread):
     def __init__(self, queue_imglist, reg_model_file, skeleton_opt, cuda_id_list, 
-        sample_duration, sample_rate=1, is_vis=False, waitTime=5, is_static_BG=False, thres=0.5):
+        sample_duration, sample_rate=1, is_vis=False, waitTime=5, is_static_BG=False, thres=0.5, out=None):
 
         threading.Thread.__init__(self)
 
         skeleton_cuda_id, reg_cuda_id = cuda_id_list
 
         if skeleton_opt == 'MSRA':
-            from MSRA_skeleton import MSRA_skeleton
-            skeleton_det = MSRA_skeleton(cuda_id=skeleton_cuda_id)
+            from MSRApose_skeleton import MSRApose_skeleton
+            skeleton_det = MSRApose_skeleton(cuda_id=skeleton_cuda_id)
         elif skeleton_opt == 'Alphapose':
             from Alphapose_skeleton import Alphapose_skeleton
             skeleton_det = Alphapose_skeleton(cuda_id=skeleton_cuda_id)
@@ -149,7 +151,7 @@ class DetectionMultiThreads(threading.Thread):
 
         self.queue_skeleton = Queue()
         self.skeleton_tool_threads = SkeletonToolThreads(self.queue_skeleton, st, reg,
-            is_vis, waitTime, is_static_BG, thres)
+            is_vis, waitTime, is_static_BG, thres, out)
         self.skeleton_tool_threads.start()
 
     def run(self):

@@ -6,8 +6,6 @@ import cv2
 import random
 import json
 
-
-
 class skeleton_tools:
 
     def __init__(self):
@@ -290,20 +288,20 @@ class skeleton_tools:
 
     def __smooth_coordinate(self, kp_preds_all):
 
-        hand_cor_tmp = np.array(kp_preds_all).transpose()
-        for i in range(hand_cor_tmp.shape[0]):
-            X = hand_cor_tmp[i].copy()
+        hand_bbox_tmp = np.array(kp_preds_all).transpose()
+        for i in range(hand_bbox_tmp.shape[0]):
+            X = hand_bbox_tmp[i].copy()
             smoothed = self.__multi_moving_average(X, window_size=5, times=3)
-            hand_cor_tmp[i] = smoothed
-        hand_cor = np.array(hand_cor_tmp).transpose()
+            hand_bbox_tmp[i] = smoothed
+        hand_bbox = np.array(hand_bbox_tmp).transpose()
 
-        return hand_cor.tolist()
+        return hand_bbox.tolist()
 
-    def __get_hand_cors(self, kp_preds_all, kp_scores_all, target_kps, is_static_BG=False):
+    def __get_hand_bboxs(self, kp_preds_all, kp_scores_all, target_kps, is_static_BG=False):
         num_valid_human = len(kp_preds_all[0]) // (2*self.skeleton_size)
         assert(num_valid_human == len(kp_scores_all[0]) // self.skeleton_size)
 
-        hand_cors = []
+        hand_bboxs = []
         for h in range(num_valid_human):
             x1, y1, x2, y2 = 10000, 10000, 0, 0
             box_w, box_h = 0, 0
@@ -323,9 +321,9 @@ class skeleton_tools:
                     box_h = max(box_h, y2-y1)
 
             if is_static_BG:
-                hand_cors.append([x1, y1, x2, y2])
+                hand_bboxs.append([x1, y1, x2, y2])
             else:
-                hand_cors_h = []
+                hand_bboxs_h = []
                 for kp_preds in kp_preds_all:
 
                     kp_preds_h = kp_preds[h*2*self.skeleton_size : (h+1)*2*self.skeleton_size]
@@ -343,11 +341,11 @@ class skeleton_tools:
                     box_y1 = box_cy - (box_h//2)
                     box_x2 = box_cx + (box_w//2)
                     box_y2 = box_cy + (box_h//2)
-                    hand_cors_h.append([box_x1, box_y1, box_x2, box_y2])
+                    hand_bboxs_h.append([box_x1, box_y1, box_x2, box_y2])
 
-                hand_cors.append(hand_cors_h)
+                hand_bboxs.append(hand_bboxs_h)
 
-        return hand_cors
+        return hand_bboxs
 
     def __crop_moving_image(self, img, x1, y1, x2, y2):
         if x1 == x2:
@@ -381,7 +379,7 @@ class skeleton_tools:
         except:
             return None
     
-    def __create_heatmap(self, joints, image_size, sigma=5):
+    def __create_heatmap(self, joints, image_size, target_kps, sigma=5):
 
         target = np.zeros((self.skeleton_size,
                            image_size[0],
@@ -390,8 +388,9 @@ class skeleton_tools:
 
         tmp_size = sigma * 3
 
-        for joint_id in range(self.skeleton_size):
-            feat_stride = [1, 1]#image_size / image_size
+        # for joint_id in range(self.skeleton_size):
+        for joint_id in target_kps:
+            feat_stride = [1, 1] #image_size / image_size
             mu_x = int(joints[2*joint_id] / feat_stride[0] + 0.5)
             mu_y = int(joints[2*joint_id+1] / feat_stride[1] + 0.5)
             # Check that any part of the gaussian is in-bounds
@@ -444,14 +443,14 @@ class skeleton_tools:
         ## smooth keypoints
         kp_preds_all = self.__smooth_coordinate(kp_preds_all)
 
-        hand_cors = self.__get_hand_cors(kp_preds_all, kp_scores_all, target_kps, is_static_BG)
+        hand_bboxs = self.__get_hand_bboxs(kp_preds_all, kp_scores_all, target_kps, is_static_BG)
 
         ## if clip is already labeled, only one person is labeled in each clip
         if is_labeled:
-            hand_cors = hand_cors[:1]
+            hand_bboxs = hand_bboxs[:1]
 
         img_out_all = []
-        for h, hand_cor in enumerate(hand_cors):
+        for h, hand_bbox in enumerate(hand_bboxs):
 
             img_out_h = []
             for i, im_name in enumerate(im_name_all):
@@ -463,19 +462,13 @@ class skeleton_tools:
                 # create heatmap
                 if is_heatmap:
                     kp_preds_h = kp_preds_all[i][h*2*self.skeleton_size : (h+1)*2*self.skeleton_size]
-
-                    # # plot
-                    # for i in range (self.skeleton_size):
-                    #     cv2.circle(img, (kp_preds_h[2*i], kp_preds_h[2*i+1]), 2, (255, 0, 0), 2)
-                    # cv2.imshow('img', img)
-
-                    img = self.__create_heatmap(kp_preds_h, img.shape)                    
+                    img = self.__create_heatmap(kp_preds_h, img.shape, target_kps)                    
 
                 if is_static_BG:
-                    x1, y1, x2, y2 = hand_cor
+                    x1, y1, x2, y2 = hand_bbox
                     img_out = self.__crop_image(img, x1, y1, x2, y2)
                 else:
-                    x1, y1, x2, y2 = hand_cor[i]
+                    x1, y1, x2, y2 = hand_bbox[i]
                     img_out = self.__crop_moving_image(img, x1, y1, x2, y2)
 
                 if img_out is not None:
@@ -488,8 +481,11 @@ class skeleton_tools:
                         out_folder = out_clip_folder + '_' + str(h+1)
                         if not os.path.exists(out_folder):
                             os.makedirs(out_folder)
-                        print(img_out.shape)
-                        cv2.imwrite(os.path.join(out_folder, im_name), img_out)
+                        if is_heatmap:
+                            npy_name = im_name.split('.')[0] + '.npy'
+                            np.save(os.path.join(out_folder, npy_name), img_out)
+                        else:
+                            cv2.imwrite(os.path.join(out_folder, im_name), img_out)
                     else:
                         img_out_h.append(img_out)
 
@@ -583,7 +579,7 @@ def create_clip():
                 continue
                 print('bad_others_list', sub)
 
-            if act != 'pick' or sub != 'Video_12_4_1':
+            if act != 'pick' or sub[:8] != 'Video_12':
                 continue
 
             if act == 'others':# or sub != 'Video_11_1_1':
@@ -596,19 +592,18 @@ def create_clip():
 
             in_clip_folder = base_in_clip_folder + sub
             skeleton_folder = base_skeleton_folder + sub
-            out_RGB_clip_folder = base_out_clip_folder + act + '_' + sub
-            out_map_clip_folder = base_out_clip_folder + act + '_' + sub + '_heatmap'
+            out_clip_folder = base_out_clip_folder + act + '_' + sub
 
             im_name_all, kp_preds_all, kp_scores_all = st.get_valid_skeletons(
                 skeleton_folder, in_skeleton_list=None, is_savejson=True)
             # st.vis_skeleton(in_clip_folder, skeleton_folder, 'None.json',
             #     im_name_all, kp_preds_all, kp_scores_all, imglist=None,
             #     result_labels=None, is_save=True, is_vis=True, thres=0.3)
-            # st.get_hand_clip(in_clip_folder, skeleton_folder, out_RGB_clip_folder, 'None.json',
+            # st.get_hand_clip(in_clip_folder, skeleton_folder, out_clip_folder, 'None.json',
             #     im_name_all, kp_preds_all, kp_scores_all, imglist=None,
             #     is_save=True, is_vis=True, is_static_BG=is_static_BG, is_labeled=is_labeled, 
             #     is_heatmap=False)
-            st.get_hand_clip(in_clip_folder, skeleton_folder, out_map_clip_folder, 'None.json',
+            st.get_hand_clip(in_clip_folder, skeleton_folder, out_clip_folder, 'None.json',
                 im_name_all, kp_preds_all, kp_scores_all, imglist=None,
                 is_save=True, is_vis=True, is_static_BG=is_static_BG, is_labeled=is_labeled, 
                 is_heatmap=True)

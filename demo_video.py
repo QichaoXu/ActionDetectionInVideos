@@ -9,13 +9,11 @@ import time
 
 from multiprocessing import Queue
 
-def demo_video(is_save_avi=False):
-    T = 45
+def demo_video(is_save_avi=False, is_static_BG=True):
 
-    reg_model_file = 'results-scratch-18-static_BG/save_200.pth'
+    T = 45
+    reg_model_file = 'results-scratch-18-static_BG-45/save_200.pth'
     skeleton_opt = 'Alphapose' #'Alphapose' #'Openpose'
-    det = Detection(reg_model_file, skeleton_opt, cuda_id_list=[1,0],
-        sample_duration=T, sample_rate=15, is_vis=True, waitTime=5, is_static_BG=True, thres=0.7)
 
     video_path = '/media/qcxu/qcxuDisk/Dataset/scratch_dataset/video_new/'
     video_name = 'Video44'
@@ -41,6 +39,9 @@ def demo_video(is_save_avi=False):
         width = int(stream.get(cv2.CAP_PROP_FRAME_WIDTH))
         height = int(stream.get(cv2.CAP_PROP_FRAME_HEIGHT))
         out = cv2.VideoWriter(out_video_name, fourcc, 25.0, (width, height))
+
+    det = Detection(reg_model_file, skeleton_opt, cuda_id_list=[1,0],
+        sample_duration=T, sample_rate=15, is_vis=True, waitTime=5, is_static_BG=True, thres=0.7)
 
     time1 = time.time()
 
@@ -77,16 +78,11 @@ def demo_video(is_save_avi=False):
     print('total time', time.time() - time1)
 
 
-def demo_video_multiThreads(is_save_avi=False):
+def demo_video_multiThreads(is_save_avi=False, is_static_BG=True):
 
     T = 30
-
-    reg_model_file = 'results-scratch-18-static_BG_30/save_20.pth'
+    reg_model_file = 'results-scratch-18-static_BG-30/save_200.pth'
     skeleton_opt = 'Alphapose' #'Alphapose' #'Openpose'
-    queue_imglist = Queue()
-    det = DetectionMultiThreads(queue_imglist, reg_model_file, skeleton_opt, cuda_id_list=[1,0],
-        sample_duration=T, sample_rate=9, is_vis=True, waitTime=23, is_static_BG=True, thres=0.7)
-    det.start()
 
     video_path = '/media/qcxu/qcxuDisk/Dataset/scratch_dataset/video_new/'
     video_name = 'Video44'
@@ -95,8 +91,8 @@ def demo_video_multiThreads(is_save_avi=False):
     # video_name = '1_7'
     # video_exp = '.avi'
 
-    input_video_name = 0
-    # input_video_name = video_path + video_name + video_exp
+    # input_video_name = 0
+    input_video_name = video_path + video_name + video_exp
     if input_video_name == 0:
         print('reading video from camera ...')
     else:
@@ -106,12 +102,18 @@ def demo_video_multiThreads(is_save_avi=False):
             return
     stream = cv2.VideoCapture(input_video_name)
 
+    out = None
     if is_save_avi:
         out_video_name = video_path + video_name + '_'+ skeleton_opt + '_' + str(is_static_BG) + '.avi'
         fourcc = cv2.VideoWriter_fourcc(*'XVID')
         width = int(stream.get(cv2.CAP_PROP_FRAME_WIDTH))
         height = int(stream.get(cv2.CAP_PROP_FRAME_HEIGHT))
         out = cv2.VideoWriter(out_video_name, fourcc, 25.0, (width, height))
+
+    queue_imglist = Queue()
+    det = DetectionMultiThreads(queue_imglist, reg_model_file, skeleton_opt, cuda_id_list=[1,0],
+        sample_duration=T, sample_rate=9, is_vis=True, waitTime=23, is_static_BG=is_static_BG, thres=0.7, out=out)
+    det.start()
 
     time1 = time.time()
 
@@ -136,16 +138,8 @@ def demo_video_multiThreads(is_save_avi=False):
                 queue_imglist.put(imglist)
                 print('put into queue_imglist', queue_imglist.qsize())
                 imglist = []
-            else:
-                if not is_save_avi or img_out_all is None:
-                    continue
-                else:
-                    out.write(img_out_all[frame_id-1])
 
-    if is_save_avi:
-        out.release()
     cv2.destroyAllWindows()
-
     queue_imglist.put('quit')
     det.join()
 
@@ -155,5 +149,5 @@ def demo_video_multiThreads(is_save_avi=False):
 if __name__ == "__main__":
 
     # demo_video()
-    demo_video_multiThreads()
+    demo_video_multiThreads(is_save_avi=True)
 
