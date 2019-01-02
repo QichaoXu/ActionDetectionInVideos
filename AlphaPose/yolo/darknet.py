@@ -391,6 +391,7 @@ class Darknet(nn.Module):
     def load_weights(self, weightfile):
         
         #Open the weights file
+        print('    loading yolo weight from ' + weightfile)
         fp = open(weightfile, "rb")
 
         #The first 4 values are header information 

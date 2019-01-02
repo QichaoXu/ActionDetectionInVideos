@@ -11,7 +11,101 @@ __all__ = [
 ]
 
 
-class ResNet2(nn.Module):
+def conv3x3x3(in_planes, out_planes, stride=1):
+    # 3x3x3 convolution with padding
+    return nn.Conv3d(
+        in_planes,
+        out_planes,
+        kernel_size=3,
+        stride=stride,
+        padding=1,
+        bias=False)
+
+
+def downsample_basic_block(x, planes, stride):
+    out = F.avg_pool3d(x, kernel_size=1, stride=stride)
+    zero_pads = torch.Tensor(
+        out.size(0), planes - out.size(1), out.size(2), out.size(3),
+        out.size(4)).zero_()
+    if isinstance(out.data, torch.cuda.FloatTensor):
+        zero_pads = zero_pads.cuda()
+
+    out = Variable(torch.cat([out.data, zero_pads], dim=1))
+
+    return out
+
+
+class BasicBlock(nn.Module):
+    expansion = 1
+
+    def __init__(self, inplanes, planes, stride=1, downsample=None):
+        super(BasicBlock, self).__init__()
+        self.conv1 = conv3x3x3(inplanes, planes, stride)
+        self.bn1 = nn.BatchNorm3d(planes)
+        self.relu = nn.ReLU(inplace=True)
+        self.conv2 = conv3x3x3(planes, planes)
+        self.bn2 = nn.BatchNorm3d(planes)
+        self.downsample = downsample
+        self.stride = stride
+
+    def forward(self, x):
+        residual = x
+
+        out = self.conv1(x)
+        out = self.bn1(out)
+        out = self.relu(out)
+
+        out = self.conv2(out)
+        out = self.bn2(out)
+
+        if self.downsample is not None:
+            residual = self.downsample(x)
+
+        out += residual
+        out = self.relu(out)
+
+        return out
+
+
+class Bottleneck(nn.Module):
+    expansion = 4
+
+    def __init__(self, inplanes, planes, stride=1, downsample=None):
+        super(Bottleneck, self).__init__()
+        self.conv1 = nn.Conv3d(inplanes, planes, kernel_size=1, bias=False)
+        self.bn1 = nn.BatchNorm3d(planes)
+        self.conv2 = nn.Conv3d(planes, planes, kernel_size=3, stride=stride, padding=1, bias=False)
+        self.bn2 = nn.BatchNorm3d(planes)
+        self.conv3 = nn.Conv3d(planes, planes * 4, kernel_size=1, bias=False)
+        self.bn3 = nn.BatchNorm3d(planes * 4)
+        self.relu = nn.ReLU(inplace=True)
+        self.downsample = downsample
+        self.stride = stride
+
+    def forward(self, x):
+        residual = x
+
+        out = self.conv1(x)
+        out = self.bn1(out)
+        out = self.relu(out)
+
+        out = self.conv2(out)
+        out = self.bn2(out)
+        out = self.relu(out)
+
+        out = self.conv3(out)
+        out = self.bn3(out)
+
+        if self.downsample is not None:
+            residual = self.downsample(x)
+
+        out += residual
+        out = self.relu(out)
+
+        return out
+
+
+class ResNet(nn.Module):
 
     def __init__(self,
                  block,
@@ -77,40 +171,23 @@ class ResNet2(nn.Module):
 
         return nn.Sequential(*layers)
 
-    def forward(self, input):
-        RGB = input[0]
-        skeleton = input[1]
-
-        x = self.conv1(RGB)
+    def forward(self, x):
+        x = self.conv1(x)
         x = self.bn1(x)
         x = self.relu(x)
         x = self.maxpool(x)
 
         x = self.layer1(x)
         x = self.layer2(x)
+        x = self.layer3(x)
+        x = self.layer4(x)
 
-        y = self.layerskeleton(skeleton, x)
+        x = self.avgpool(x)
 
-        # skeleton stream
-        x1 = self.layer3(y)
-        x1 = self.layer4(x1)
+        x = x.view(x.size(0), -1)
+        x = self.fc(x)
 
-        x1 = self.avgpool(x1)
-
-        x1 = x1.view(x1.size(0), -1)
-        x1 = self.fc(x1)
-
-        # RGB stream
-        x2 = self.layer3(x)
-        x2 = self.layer4(x2)
-
-        x2 = self.avgpool(x2)
-
-        x2 = x2.view(x2.size(0), -1)
-        x2 = self.fc(x2)
-
-        out = x1 + x2
-        return out
+        return x
 
 
 def get_fine_tuning_parameters(model, ft_begin_index):

@@ -13,7 +13,7 @@ def add_path(path):
         sys.path.insert(0, path)
 
 this_dir = os.path.dirname(__file__)
-lib_path = os.path.join(this_dir, 'C3D_ResNet')
+lib_path = os.path.join(this_dir, 'C3D_ResNet_skeleton')
 add_path(lib_path)
 
 from opts import parse_opts
@@ -35,12 +35,12 @@ import torch.nn.functional as F
 from PIL import Image
 import cv2
 
-class Action_Recognition:
+class Action_Recognition_Skeleton:
     def __init__(self, model_file, sample_duration, cuda_id=0):
 
         self.opt = parse_opts()
 
-        self.opt.root_path = './C3D_ResNet/data'
+        self.opt.root_path = './C3D_ResNet_skeleton/data'
         self.opt.resume_path = os.path.join(self.opt.root_path, model_file)
         self.opt.pretrain_path = os.path.join(self.opt.root_path, 'models/resnet-18-kinetics.pth')
 
@@ -49,7 +49,7 @@ class Action_Recognition:
         self.opt.n_classes = 400
         self.opt.n_finetune_classes = 3
         self.opt.ft_begin_index = 4
-        self.opt.model = 'resnet'
+        self.opt.model = 'resnet_skeleton'
         self.opt.model_depth = 18
         self.opt.resnet_shortcut = 'A'
         self.opt.sample_duration = sample_duration
@@ -77,7 +77,7 @@ class Action_Recognition:
         if self.opt.resume_path:
             print('    loading checkpoint {}'.format(self.opt.resume_path))
             checkpoint = torch.load(self.opt.resume_path)
-            assert self.opt.arch == checkpoint['arch']
+            # assert self.opt.arch == checkpoint['arch']
 
             self.opt.begin_epoch = checkpoint['epoch']
             self.model.load_state_dict(checkpoint['state_dict'])
@@ -92,7 +92,7 @@ class Action_Recognition:
 
         self.model.eval()
 
-    def run(self, clip):
+    def run(self, clip, heatmap):
         '''
         input: clips is continuous frames with length T
         return: action recognition probability
@@ -101,15 +101,20 @@ class Action_Recognition:
         if self.spatial_transform is not None:
             self.spatial_transform.randomize_parameters()
             clip = [self.spatial_transform(img) for img in clip]
+            heatmap = [self.spatial_transform(img) for img in heatmap]
         clip = torch.stack(clip, 0).permute(1, 0, 2, 3)
         clip = clip.unsqueeze(0)
+        heatmap = torch.stack(heatmap, 0).permute(1, 0, 2, 3)
+        heatmap = heatmap.unsqueeze(0)
         if self.opt.cuda_id is None:
             inputs = Variable(clip)
+            heatmap = Variable(heatmap)
         else:
             inputs = Variable(clip.cuda(self.opt.cuda_id))
+            heatmap = Variable(heatmap.cuda(self.opt.cuda_id))
 
         # run model
-        outputs = self.model(inputs)
+        outputs = self.model(inputs, heatmap)
         outputs = F.softmax(outputs)
 
         sorted_scores, locs = torch.topk(outputs, k=3)

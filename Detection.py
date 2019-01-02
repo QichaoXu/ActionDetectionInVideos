@@ -53,7 +53,7 @@ class Detection:
         # self.st.vis_skeleton('None', 'None', 'None.json',
         #     im_name_all, kp_preds_all, kp_scores_all, imglist,
         #     result_labels=None, is_save=False, is_vis=True, thres=0.3)
-        clip_all = self.st.get_hand_clip('None', 'None', 'None', 'None.json',
+        clip_all, _ = self.st.get_hand_clip('None', 'None', 'None', 'None.json',
             im_name_all, kp_preds_all, kp_scores_all, imglist,
             is_save=False, is_vis=False, is_static_BG=self.is_static_BG, is_labeled=False, 
             is_heatmap=False, waitTime=self.waitTime)

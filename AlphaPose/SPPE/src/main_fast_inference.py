@@ -30,10 +30,10 @@ class InferenNet(nn.Module):
 
         model = createModel().cuda()
         if os.path.exists('./models/sppe/duc_se.pth'):
-            print('Loading pose model from {}'.format('./models/sppe/duc_se.pth'))
+            print('    loading pose model from {}'.format('./models/sppe/duc_se.pth'))
             model.load_state_dict(torch.load('./models/sppe/duc_se.pth'))
         else:
-            print('Loading pose model from {}'.format('./AlphaPose/models/sppe/duc_se.pth'))
+            print('    loading pose model from {}'.format('./AlphaPose/models/sppe/duc_se.pth'))
             model.load_state_dict(torch.load('./AlphaPose/models/sppe/duc_se.pth'))
         model.eval()
         self.pyranet = model
@@ -61,10 +61,10 @@ class InferenNet_fast(nn.Module):
 
         model = createModel().cuda()
         if os.path.exists('./models/sppe/duc_se.pth'):
-            print('Loading pose model from {}'.format('./models/sppe/duc_se.pth'))
+            print('    loading pose model from {}'.format('./models/sppe/duc_se.pth'))
             model.load_state_dict(torch.load('./models/sppe/duc_se.pth'))
         else:
-            print('Loading pose model from {}'.format('./AlphaPose/models/sppe/duc_se.pth'))
+            print('    loading pose model from {}'.format('./AlphaPose/models/sppe/duc_se.pth'))
             model.load_state_dict(torch.load('./AlphaPose/models/sppe/duc_se.pth'))
         model.eval()
         self.pyranet = model

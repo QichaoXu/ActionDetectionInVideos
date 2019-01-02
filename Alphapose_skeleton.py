@@ -53,8 +53,8 @@ class Alphapose_skeleton:
 
         # Load yolo detection model
         print('Loading YOLO model..')
-        self.det_model = Darknet('AlphaPose/yolo/cfg/yolov3.cfg', self.cuda_id)
-        self.det_model.load_weights('AlphaPose/models/yolo/yolov3.weights')
+        self.det_model = Darknet('./AlphaPose/yolo/cfg/yolov3.cfg', self.cuda_id)
+        self.det_model.load_weights('./AlphaPose/models/yolo/yolov3.weights')
         self.det_model.cuda(self.cuda_id)
         self.det_model.eval()
 

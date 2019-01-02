@@ -241,6 +241,7 @@ class skeleton_tools:
             return
 
         img_out_all = []
+        print(result_labels)
         for i, im_name in enumerate(im_name_all):
             if imglist is None:
                 # print(os.path.join(in_clip_folder, im_name))
@@ -423,6 +424,9 @@ class skeleton_tools:
                     g[g_y[0]:g_y[1], g_x[0]:g_x[1]]
 
         target = np.sum(target, axis=0)
+        target[target > 1.0] = 1.0
+        target *= 255
+        target = target.astype(np.uint8)
         return target[:, :, np.newaxis]
 
     def get_hand_clip(self, in_clip_folder, skeleton_folder, out_clip_folder, json_file_name, 
@@ -450,9 +454,11 @@ class skeleton_tools:
             hand_bboxs = hand_bboxs[:1]
 
         img_out_all = []
+        heatmap_out_all = []
         for h, hand_bbox in enumerate(hand_bboxs):
 
             img_out_h = []
+            heatmap_out_h = []
             for i, im_name in enumerate(im_name_all):
                 if imglist is None:
                     img = cv2.imread(os.path.join(in_clip_folder, im_name))
@@ -462,7 +468,16 @@ class skeleton_tools:
                 # create heatmap
                 if is_heatmap:
                     kp_preds_h = kp_preds_all[i][h*2*self.skeleton_size : (h+1)*2*self.skeleton_size]
-                    img = self.__create_heatmap(kp_preds_h, img.shape, target_kps)                    
+                    heatmap = self.__create_heatmap(kp_preds_h, img.shape, target_kps)                    
+
+                    if is_static_BG:
+                        x1, y1, x2, y2 = hand_bbox
+                        heatmap_out = self.__crop_image(heatmap, x1, y1, x2, y2)
+                    else:
+                        x1, y1, x2, y2 = hand_bbox[i]
+                        heatmap_out = self.__crop_moving_image(heatmap, x1, y1, x2, y2)
+                    if heatmap_out is not None:
+                        heatmap_out_h.append(heatmap_out)
 
                 if is_static_BG:
                     x1, y1, x2, y2 = hand_bbox
@@ -472,7 +487,6 @@ class skeleton_tools:
                     img_out = self.__crop_moving_image(img, x1, y1, x2, y2)
 
                 if img_out is not None:
-
                     if is_vis:
                         cv2.imshow('skeletons', img_out)
                         cv2.waitKey(waitTime)
@@ -482,15 +496,17 @@ class skeleton_tools:
                         if not os.path.exists(out_folder):
                             os.makedirs(out_folder)
                         if is_heatmap:
-                            npy_name = im_name.split('.')[0] + '.npy'
-                            np.save(os.path.join(out_folder, npy_name), img_out)
+                            im_name = im_name.split('.')[0] + '_heatmap.jpg'
+                            cv2.imwrite(os.path.join(out_folder, im_name), img_out)
                         else:
                             cv2.imwrite(os.path.join(out_folder, im_name), img_out)
                     else:
                         img_out_h.append(img_out)
 
             img_out_all.append(img_out_h)
-        return img_out_all
+            heatmap_out_all.append(heatmap_out_h)
+
+        return img_out_all, heatmap_out_all
 
 
 def create_TrainTestlist(clip_folder, TrainTest_folder, sample_rate):
@@ -579,11 +595,11 @@ def create_clip():
                 continue
                 print('bad_others_list', sub)
 
-            if act != 'pick' or sub[:8] != 'Video_12':
-                continue
+            # if act != 'pick' or sub[:8] != 'Video_12':
+            #     continue
 
-            if act == 'others':# or sub != 'Video_11_1_1':
-                continue
+            # if act == 'others':# or sub != 'Video_11_1_1':
+            #     continue
 
             if act == 'others' and sub_id % 4 != 0:
                 continue
@@ -605,7 +621,7 @@ def create_clip():
             #     is_heatmap=False)
             st.get_hand_clip(in_clip_folder, skeleton_folder, out_clip_folder, 'None.json',
                 im_name_all, kp_preds_all, kp_scores_all, imglist=None,
-                is_save=True, is_vis=True, is_static_BG=is_static_BG, is_labeled=is_labeled, 
+                is_save=True, is_vis=False, is_static_BG=is_static_BG, is_labeled=is_labeled, 
                 is_heatmap=True)
 
 
