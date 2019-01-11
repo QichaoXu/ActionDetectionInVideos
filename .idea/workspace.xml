@@ -1,0 +1,242 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ChangeListManager">
+    <list default="true" id="89f80c3c-7151-4b04-b9a9-d12091379e13" name="Default Changelist" comment="">
+      <change beforePath="$PROJECT_DIR$/Action_Recognition.py" beforeDir="false" afterPath="$PROJECT_DIR$/Action_Recognition.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Action_Recognition_Skeleton.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Alphapose_skeleton.py" beforeDir="false" afterPath="$PROJECT_DIR$/Alphapose_skeleton.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/C3D_ResNet/model.py" beforeDir="false" afterPath="$PROJECT_DIR$/C3D_ResNet/model.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/C3D_ResNet_skeleton/model.py" beforeDir="false" afterPath="$PROJECT_DIR$/C3D_ResNet_skeleton/model.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/DetectionMultiThreads.py" beforeDir="false" afterPath="$PROJECT_DIR$/DetectionMultiThreads.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/MSRApose_skeleton.py" beforeDir="false" afterPath="$PROJECT_DIR$/MSRApose_skeleton.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Openpose_skeleton.py" beforeDir="false" afterPath="$PROJECT_DIR$/Openpose_skeleton.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/demo_camera.py" beforeDir="false" afterPath="$PROJECT_DIR$/demo_camera.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/skeleton_tools.py" beforeDir="false" afterPath="$PROJECT_DIR$/skeleton_tools.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tf-openpose/run.py" beforeDir="false" afterPath="$PROJECT_DIR$/tf-openpose/run.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tf-openpose/tf_pose/estimator.py" beforeDir="false" afterPath="$PROJECT_DIR$/tf-openpose/tf_pose/estimator.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tf-openpose/tf_pose/pafprocess/pafprocess.py" beforeDir="false" afterPath="$PROJECT_DIR$/tf-openpose/tf_pose/pafprocess/pafprocess.py" afterDir="false" />
+    </list>
+    <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="FUSProjectUsageTrigger">
+    <session id="369713656">
+      <usages-collector id="statistics.lifecycle.project">
+        <counts>
+          <entry key="project.closed" value="1" />
+          <entry key="project.open.time.32" value="1" />
+          <entry key="project.opened" value="1" />
+        </counts>
+      </usages-collector>
+      <usages-collector id="statistics.file.extensions.open">
+        <counts>
+          <entry key="py" value="1" />
+        </counts>
+      </usages-collector>
+      <usages-collector id="statistics.file.types.open">
+        <counts>
+          <entry key="Python" value="1" />
+        </counts>
+      </usages-collector>
+    </session>
+  </component>
+  <component name="FileEditorManager">
+    <leaf>
+      <file pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/tf-openpose/run.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="665">
+              <caret line="35" column="27" selection-start-line="35" selection-start-column="12" selection-end-line="35" selection-end-column="27" />
+              <folding>
+                <element signature="e#0#15#0" expanded="true" />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/tf-openpose/tf_pose/estimator.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="342">
+              <caret line="279" column="51" selection-start-line="279" selection-start-column="39" selection-end-line="279" selection-end-column="51" />
+              <folding>
+                <element signature="e#0#14#0" expanded="true" />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/tf-openpose/tf_pose/pafprocess/pafprocess.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="228">
+              <caret line="243" column="37" selection-start-line="243" selection-start-column="26" selection-end-line="243" selection-end-column="37" />
+            </state>
+          </provider>
+        </entry>
+      </file>
+    </leaf>
+  </component>
+  <component name="FindInProjectRecents">
+    <findStrings>
+      <find>get_part_cid</find>
+    </findStrings>
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/tf-openpose" />
+  </component>
+  <component name="IdeDocumentHistory">
+    <option name="CHANGED_PATHS">
+      <list>
+        <option value="$PROJECT_DIR$/tf-openpose/tf_pose/pafprocess/pafprocess.py" />
+      </list>
+    </option>
+  </component>
+  <component name="JsBuildToolGruntFileManager" detection-done="true" sorting="DEFINITION_ORDER" />
+  <component name="JsBuildToolPackageJson" detection-done="true" sorting="DEFINITION_ORDER" />
+  <component name="JsGulpfileManager">
+    <detection-done>true</detection-done>
+    <sorting>DEFINITION_ORDER</sorting>
+  </component>
+  <component name="ProjectFrameBounds" extendedState="6">
+    <option name="x" value="698" />
+    <option name="y" value="45" />
+    <option name="width" value="1396" />
+    <option name="height" value="1012" />
+  </component>
+  <component name="ProjectLevelVcsManager" settingsEditedManually="true">
+    <ConfirmationsSetting value="1" id="Add" />
+  </component>
+  <component name="ProjectView">
+    <navigator proportions="" version="1">
+      <foldersAlwaysOnTop value="true" />
+    </navigator>
+    <panes>
+      <pane id="Scope" />
+      <pane id="ProjectPane">
+        <subPane>
+          <expand>
+            <path>
+              <item name="ActionDetectionInVideos" type="b2602c69:ProjectViewProjectNode" />
+              <item name="ActionDetectionInVideos" type="462c0819:PsiDirectoryNode" />
+            </path>
+            <path>
+              <item name="ActionDetectionInVideos" type="b2602c69:ProjectViewProjectNode" />
+              <item name="ActionDetectionInVideos" type="462c0819:PsiDirectoryNode" />
+              <item name="tf-openpose" type="462c0819:PsiDirectoryNode" />
+            </path>
+            <path>
+              <item name="ActionDetectionInVideos" type="b2602c69:ProjectViewProjectNode" />
+              <item name="ActionDetectionInVideos" type="462c0819:PsiDirectoryNode" />
+              <item name="tf-openpose" type="462c0819:PsiDirectoryNode" />
+              <item name="tf_pose" type="462c0819:PsiDirectoryNode" />
+            </path>
+            <path>
+              <item name="ActionDetectionInVideos" type="b2602c69:ProjectViewProjectNode" />
+              <item name="ActionDetectionInVideos" type="462c0819:PsiDirectoryNode" />
+              <item name="tf-openpose" type="462c0819:PsiDirectoryNode" />
+              <item name="tf_pose" type="462c0819:PsiDirectoryNode" />
+              <item name="pafprocess" type="462c0819:PsiDirectoryNode" />
+            </path>
+          </expand>
+          <select />
+        </subPane>
+      </pane>
+    </panes>
+  </component>
+  <component name="PropertiesComponent">
+    <property name="WebServerToolWindowFactoryState" value="false" />
+    <property name="nodejs_interpreter_path.stuck_in_default_project" value="undefined stuck path" />
+    <property name="nodejs_npm_path_reset_for_default_project" value="true" />
+  </component>
+  <component name="RunDashboard">
+    <option name="ruleStates">
+      <list>
+        <RuleState>
+          <option name="name" value="ConfigurationTypeDashboardGroupingRule" />
+        </RuleState>
+        <RuleState>
+          <option name="name" value="StatusDashboardGroupingRule" />
+        </RuleState>
+      </list>
+    </option>
+  </component>
+  <component name="SvnConfiguration">
+    <configuration />
+  </component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="89f80c3c-7151-4b04-b9a9-d12091379e13" name="Default Changelist" comment="" />
+      <created>1546753893877</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1546753893877</updated>
+    </task>
+    <servers />
+  </component>
+  <component name="ToolWindowManager">
+    <frame x="65" y="-4" width="1855" height="1084" extended-state="6" />
+    <editor active="true" />
+    <layout>
+      <window_info id="Favorites" side_tool="true" />
+      <window_info active="true" content_ui="combo" id="Project" order="0" visible="true" weight="0.2498618" />
+      <window_info id="Structure" order="1" side_tool="true" weight="0.25" />
+      <window_info anchor="bottom" id="Docker" show_stripe_button="false" />
+      <window_info anchor="bottom" id="Database Changes" show_stripe_button="false" />
+      <window_info anchor="bottom" id="Version Control" show_stripe_button="false" />
+      <window_info anchor="bottom" id="Python Console" />
+      <window_info anchor="bottom" id="Terminal" />
+      <window_info anchor="bottom" id="Event Log" side_tool="true" />
+      <window_info anchor="bottom" id="Message" order="0" />
+      <window_info anchor="bottom" id="Find" order="1" />
+      <window_info anchor="bottom" id="Run" order="2" />
+      <window_info anchor="bottom" id="Debug" order="3" weight="0.4" />
+      <window_info anchor="bottom" id="Cvs" order="4" weight="0.25" />
+      <window_info anchor="bottom" id="Inspection" order="5" weight="0.4" />
+      <window_info anchor="bottom" id="TODO" order="6" />
+      <window_info anchor="right" id="SciView" />
+      <window_info anchor="right" id="Database" />
+      <window_info anchor="right" id="Commander" internal_type="SLIDING" order="0" type="SLIDING" weight="0.4" />
+      <window_info anchor="right" id="Ant Build" order="1" weight="0.25" />
+      <window_info anchor="right" content_ui="combo" id="Hierarchy" order="2" weight="0.25" />
+    </layout>
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="1" />
+  </component>
+  <component name="VcsContentAnnotationSettings">
+    <option name="myLimit" value="2678400000" />
+  </component>
+  <component name="editorHistoryManager">
+    <entry file="file://$PROJECT_DIR$/tf-openpose/run.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="665">
+          <caret line="35" column="27" selection-start-line="35" selection-start-column="12" selection-end-line="35" selection-end-column="27" />
+          <folding>
+            <element signature="e#0#15#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/tf-openpose/tf_pose/estimator.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="342">
+          <caret line="279" column="51" selection-start-line="279" selection-start-column="39" selection-end-line="279" selection-end-column="51" />
+          <folding>
+            <element signature="e#0#14#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/tf-openpose/tf_pose/pafprocess/pafprocess.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="228">
+          <caret line="243" column="37" selection-start-line="243" selection-start-column="26" selection-end-line="243" selection-end-column="37" />
+        </state>
+      </provider>
+    </entry>
+  </component>
+</project>

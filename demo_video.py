@@ -39,7 +39,7 @@ def demo_video(is_save_avi=False, is_static_BG=True):
         out = cv2.VideoWriter(out_video_name, fourcc, 25.0, (width, height))
 
     det = Detection(reg_model_file, skeleton_opt, cuda_id_list=[1,0],
-        sample_duration=T, sample_rate=15, is_vis=True, waitTime=5, is_static_BG=True, thres=0.7)
+        sample_duration=T, sample_rate=15, is_static_BG=True, is_heatmap=False, thres=0.7)
 
     time1 = time.time()
 

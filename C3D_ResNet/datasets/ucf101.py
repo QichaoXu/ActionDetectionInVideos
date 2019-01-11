@@ -182,10 +182,12 @@ class UCF101(data.Dataset):
         frame_indices = self.data[index]['frame_indices']
         if self.temporal_transform is not None:
             frame_indices = self.temporal_transform(frame_indices)
+        # print(path, frame_indices)
         clip = self.loader(path, frame_indices)
         if self.spatial_transform is not None:
             self.spatial_transform.randomize_parameters()
             clip = [self.spatial_transform(img) for img in clip]
+        # print(len(clip))
         clip = torch.stack(clip, 0).permute(1, 0, 2, 3)
 
         target = self.data[index]

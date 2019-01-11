@@ -10,37 +10,39 @@ from PIL import Image
 
 class Detection:
     def __init__(self, reg_model_file, skeleton_opt, cuda_id_list, 
-        sample_duration, sample_rate=1, is_vis=False, waitTime=5, is_static_BG=False, thres=0.5):
+        sample_duration, sample_rate=1, is_static_BG=False, is_heatmap=False, thres=0.5):
 
         skeleton_cuda_id, reg_cuda_id = cuda_id_list
 
         if skeleton_opt == 'MSRA':
             from MSRApose_skeleton import MSRApose_skeleton
-            self.skeleton_det = MSRApose_skeleton(cuda_id=skeleton_cuda_id)
+            self.skeleton_det = MSRApose_skeleton(cuda_id=skeleton_cuda_id, fast_yolo=False)
         elif skeleton_opt == 'Alphapose':
             from Alphapose_skeleton import Alphapose_skeleton
-            self.skeleton_det = Alphapose_skeleton(cuda_id=skeleton_cuda_id)
+            self.skeleton_det = Alphapose_skeleton(cuda_id=skeleton_cuda_id, fast_yolo=False)
         elif skeleton_opt == 'Openpose':
             from Openpose_skeleton import Openpose_skeleton
             self.skeleton_det = Openpose_skeleton(cuda_id=skeleton_cuda_id)
+        elif skeleton_opt == 'TFOpenpose':
+            from TFOpenpose_skeleton import TFOpenpose_skeleton
+            self.skeleton_det = TFOpenpose_skeleton(cuda_id=skeleton_cuda_id)
         else:
             raise Exception('Error: ' + skeleton_opt + ' could not be found')
 
         self.st = skeleton_tools()
-        self.reg = Action_Recognition(reg_model_file, sample_duration, cuda_id=reg_cuda_id)
+        # self.reg = Action_Recognition(reg_model_file, sample_duration, cuda_id=reg_cuda_id)
         print('=================== Initialized ===================\n\n')
 
         self.sample_rate = sample_rate
         self.is_static_BG = is_static_BG
-        self.waitTime = waitTime
-        self.is_vis = is_vis
+        self.is_heatmap = is_heatmap
         self.thres = thres
 
         self.time_st = 0.0
         self.time_reg = 0.0
         self.time_vis = 0.0
 
-    def run(self, imglist):
+    def run(self, imglist, out_clip_folder=None):
         ### imglist: list of images read by opencv2
 
         # detect skeleton
@@ -53,33 +55,32 @@ class Detection:
         # self.st.vis_skeleton('None', 'None', 'None.json',
         #     im_name_all, kp_preds_all, kp_scores_all, imglist,
         #     result_labels=None, is_save=False, is_vis=True, thres=0.3)
-        clip_all, _ = self.st.get_hand_clip('None', 'None', 'None', 'None.json',
+        clip_all, heatmap_all = self.st.get_hand_clip('None', out_clip_folder, 'None', 'None.json',
             im_name_all, kp_preds_all, kp_scores_all, imglist,
-            is_save=False, is_vis=False, is_static_BG=self.is_static_BG, is_labeled=False, 
-            is_heatmap=False, waitTime=self.waitTime)
+            is_save=True, is_vis=True, is_static_BG=self.is_static_BG, is_labeled=False, 
+            is_heatmap=self.is_heatmap)
         self.time_st += (time.time() - time1)
 
-        # run action recornition
-        time1 = time.time()
-        result_labels = []
-        for clip in clip_all:
-            clip_PIL = [Image.fromarray(cv2.cvtColor(img, cv2.COLOR_BGR2RGB)) for img in clip]
-            if clip_PIL is None or len(clip_PIL) == 0:
-                result_labels.append([0, [0.0, 0.0, 0.0]])
-            else:
-                label, probs = self.reg.run(clip_PIL)
-                result_labels.append([label, probs])
-        self.time_reg += (time.time() - time1)
+        # # run action recornition
+        # time1 = time.time()
+        # result_labels = []
+        # for clip in clip_all:
+        #     clip_PIL = [Image.fromarray(cv2.cvtColor(img, cv2.COLOR_BGR2RGB)) for img in clip]
+        #     if clip_PIL is None or len(clip_PIL) == 0:
+        #         result_labels.append([0, [0.0, 0.0, 0.0]])
+        #     else:
+        #         label, probs = self.reg.run(clip_PIL)
+        #         result_labels.append([label, probs])
+        # self.time_reg += (time.time() - time1)
 
-        # visualize result
-        time1 = time.time()
-        img_out_all = self.st.vis_skeleton('None', 'None', 'None.json',
-            im_name_all, kp_preds_all, kp_scores_all, imglist,
-            result_labels=result_labels, is_save=False, is_vis=self.is_vis, thres=self.thres,
-            waitTime=self.waitTime)
-        self.time_vis += (time.time() - time1)
+        # # visualize result
+        # time1 = time.time()
+        # img_out_all = self.st.vis_skeleton('None', 'None', 'None.json',
+        #     im_name_all, kp_preds_all, kp_scores_all, imglist,
+        #     result_labels=result_labels, is_save=False, is_vis=False, thres=self.thres)
+        # self.time_vis += (time.time() - time1)
 
-        return img_out_all
+        # return img_out_all
 
     def print_runtime(self):
         print('\n\n=================== Time Analysis ===================')
@@ -95,17 +96,63 @@ class Detection:
         print('time_visualise:', '{:.4f}'.format(self.time_vis), '{:.4f}'.format(self.time_vis / time_total))
 
 
-if __name__ == "__main__":
+def extract_hand_clip_from_clip_folders():
+    T = 40
+    skeleton_opt = 'Alphapose' # 'MSRA'  # 'Alphapose'  # 'Openpose' # 'TFOpenpose'
 
     reg_model_file = 'results-scratch-18/save_200.pth'
-    detection = Detection(reg_model_file, skeleton_opt='Openpose', 
-        is_vis=False, waitTime=5, is_static_BG=False, thres=0.9)
+    detection = Detection(reg_model_file, skeleton_opt=skeleton_opt, cuda_id_list=[0,1],
+        sample_duration=T, sample_rate=1, is_static_BG=True, is_heatmap=True, thres=0.5)
 
-    base_folder = '/media/qcxu/qcxuDisk/Dataset/scratch_dataset/others/clips/Video_11_1_1'
-    imglist = []
-    for img_name in os.listdir(base_folder):
-        if img_name.endswith('jpg'):
-            imglist.append(cv2.imread(os.path.join(base_folder, img_name)))
+    base_folder = '/media/qcxu/qcxuDisk/Dataset/scratch_dataset/others/clips/'
+    dst_folder = '/media/qcxu/qcxuDisk/Dataset/scratch_dataset/hand_static_BG/others/'
+    for sub in os.listdir(base_folder):
+        sub_folder = os.path.join(base_folder, sub)
+        image_name_list = [img_name for img_name in os.listdir(sub_folder) if img_name.endswith('.jpg')]
+        N = len(image_name_list)
 
-    detection.run(imglist)
+        imglist = []
+        for j in range(N):
+            img_name = os.path.join(sub_folder, 'image_{:05d}.jpg'.format(j+1))
+            imglist.append(cv2.imread(img_name))
 
+        out_clip_folder = os.path.join(dst_folder, 'others_'+sub)
+        print(sub, N, out_clip_folder)
+        detection.run(imglist, out_clip_folder)
+
+    detection.print_runtime()
+
+
+def extract_hand_clip_from_videos():
+    T = 48
+    skeleton_opt = 'Alphapose' # 'MSRA'  # 'Alphapose'  # 'Openpose' # 'TFOpenpose'
+
+    reg_model_file = 'results-scratch-18/save_200.pth'
+    detection = Detection(reg_model_file, skeleton_opt=skeleton_opt, cuda_id_list=[0,1],
+        sample_duration=T, sample_rate=1, is_static_BG=True, is_heatmap=True, thres=0.5)
+
+    base_folder = '/media/qcxu/qcxuDisk/Dataset/scratch_dataset/video_normal/image_normal'
+    dst_folder = '/media/qcxu/qcxuDisk/Dataset/scratch_dataset/clips4'
+    for sub in os.listdir(base_folder)[:1]:
+        sub_folder = os.path.join(base_folder, sub)
+        image_name_list = [img_name for img_name in os.listdir(sub_folder) if img_name.endswith('.jpg')]
+        N = len(image_name_list) // T - 1
+        print(sub, N)
+
+        for i in range(25, 26):
+            imglist = []
+            for j in range(i*T, (i+1)*T, 1):
+                img_name = os.path.join(sub_folder, 'image_{:05d}.jpg'.format(j+1))
+                imglist.append(cv2.imread(img_name))
+
+            out_clip_folder = os.path.join(dst_folder, sub+'_'+str(i+1))
+            print(N, out_clip_folder)
+            detection.run(imglist, out_clip_folder)
+
+    detection.print_runtime()
+
+
+if __name__ == "__main__":
+
+    # test()
+    # extract_hand_clip_from_clip_folders()

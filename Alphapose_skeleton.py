@@ -43,7 +43,7 @@ args.dataset = 'coco'
 
 
 class Alphapose_skeleton:
-    def __init__(self, cuda_id=0):
+    def __init__(self, cuda_id=0, fast_yolo=False):
 
         self.time_det = 0.0
         self.time_run = 0.0
@@ -53,8 +53,13 @@ class Alphapose_skeleton:
 
         # Load yolo detection model
         print('Loading YOLO model..')
-        self.det_model = Darknet('./AlphaPose/yolo/cfg/yolov3.cfg', self.cuda_id)
-        self.det_model.load_weights('./AlphaPose/models/yolo/yolov3.weights')
+        if fast_yolo:
+            self.det_model = Darknet('./AlphaPose/yolo/cfg/yolov3-tiny.cfg', self.cuda_id)
+            self.det_model.load_weights('./AlphaPose/models/yolo/yolov3-tiny.weights')
+        else:
+            self.det_model = Darknet('./AlphaPose/yolo/cfg/yolov3.cfg', self.cuda_id)
+            self.det_model.load_weights('./AlphaPose/models/yolo/yolov3.weights')
+            
         self.det_model.cuda(self.cuda_id)
         self.det_model.eval()
 
@@ -69,7 +74,7 @@ class Alphapose_skeleton:
         self.pose_model.eval()
 
 
-    def run(self, folder_or_imglist, sample_rate, heatmap_folder=None):
+    def run(self, folder_or_imglist, sample_rate):
         time_run_start = time.time()
 
         if type(folder_or_imglist) == 'str':
@@ -104,28 +109,6 @@ class Alphapose_skeleton:
                     hm = self.pose_model(inps)
                     hm_data = hm.cpu().data
 
-                    # if heatmap_folder is not None:
-                    #     heatmap = hm_data.numpy()
-                    #     print(heatmap.shape)
-                    #     for h in range(heatmap.shape[0]):
-                    #         heatmap_hand = heatmap[h][self.target_kps[0]]
-                    #         for kk in self.target_kps[1:]:
-                    #             heatmap_hand += heatmap[0][kk]
-
-                            # outputpath = heatmap_folder+'_'+str(h+1)
-                            # if not os.path.exists(outputpath):
-                            #     os.mkdir(outputpath)
-
-                            # heatmap_hand *= 255
-                            # heatmap_hand[heatmap_hand < 0.0] = 0.0
-                            # heatmap_hand = heatmap_hand.astype(np.int8)
-                            # # print(np.amax(heatmap_hand), np.amin(heatmap_hand))
-                            # cv2.imwrite(os.path.join(outputpath, im_name), heatmap_hand)
-
-                            # cv2.imshow('orig_img', orig_img)
-                            # cv2.imshow('skeletons', heatmap_hand)
-                            # cv2.waitKey()
-
                     preds_hm, preds_img, preds_scores = getPrediction(
                             hm_data, pt1, pt2, args.inputResH, args.inputResW, args.outputResH, args.outputResW)
 
@@ -137,7 +120,7 @@ class Alphapose_skeleton:
         skeleton_list = []
         j = 0
         for i in range(N):
-            im_name = 'image_{:05d}.jpg'.format(i)
+            im_name = 'image_{:05d}.jpg'.format(i+1)
 
             if (i == sample_rate * (1+j)):
                 j += 1
@@ -182,11 +165,12 @@ if __name__ == "__main__":
 
     # get skeleton
     skeleton_det = Alphapose_skeleton()
+
+    time1 = time.time()
     for act in __action__:
 
         base_in_clip_folder = base_folder + act + '/clips/'
         base_skeleton_folder = base_folder + act + '/skeletons/'
-        base_heatmap_folder = base_folder + act + '/heatmap/'
 
         for sub_id, sub in enumerate(os.listdir(base_in_clip_folder)):
 
@@ -195,12 +179,12 @@ if __name__ == "__main__":
 
             in_clip_folder = base_in_clip_folder + sub
             skeleton_folder = base_skeleton_folder + sub
-            heatmap_folder = base_heatmap_folder + sub
 
             imglist = []
-            for img_name in os.listdir(in_clip_folder):
-                if img_name.endswith('jpg'):
-                    imglist.append(cv2.imread(os.path.join(in_clip_folder, img_name)))
+            for im_name in os.listdir(in_clip_folder):
+                if im_name.endswith('jpg'):
+                    imglist.append(cv2.imread(os.path.join(in_clip_folder, im_name)))
 
-            skeleton_list = skeleton_det.run(imglist, heatmap_folder)
-            skeleton_det.save_skeleton(skeleton_list, skeleton_folder)
+            skeleton_list = skeleton_det.run(imglist, sample_rate=1)
+            # skeleton_det.save_skeleton(skeleton_list, skeleton_folder)
+    print(time.time() - time1)

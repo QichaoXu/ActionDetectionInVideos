@@ -62,15 +62,15 @@ class Openpose_skeleton:
             print(inputpath)
 
             imglist = []
-            for img_name in os.listdir(inputpath):
-                if img_name.endswith('jpg'):
-                    imglist.append(cv2.imread(os.path.join(inputpath, img_name)))
+            for im_name in os.listdir(inputpath):
+                if im_name.endswith('jpg'):
+                    imglist.append(cv2.imread(os.path.join(inputpath, im_name)))
         else:
             imglist = folder_or_imglist
 
         skeleton_list = []
         for i, img in enumerate(imglist):
-            im_name = 'image_{:05d}.jpg'.format(i)
+            im_name = 'image_{:05d}.jpg'.format(i+1)
             
             time_det_start = time.time()
             if i % sample_rate == 0:
@@ -116,6 +116,8 @@ if __name__ == "__main__":
 
     # get skeleton
     skeleton_det = Openpose_skeleton()
+
+    time1 = time.time()
     for act in __action__:
 
         base_in_clip_folder = base_folder + act + '/clips/'
@@ -123,17 +125,17 @@ if __name__ == "__main__":
 
         for sub_id, sub in enumerate(os.listdir(base_in_clip_folder)):
 
-            if sub != 'Video_11_1_1':
+            if act != 'pick' or sub != 'Video_12_4_1':
                 continue
 
             in_clip_folder = base_in_clip_folder + sub
             skeleton_folder = base_skeleton_folder + sub
 
-
             imglist = []
-            for img_name in os.listdir(in_clip_folder):
-                if img_name.endswith('jpg'):
-                    imglist.append(cv2.imread(os.path.join(in_clip_folder, img_name)))
+            for im_name in os.listdir(in_clip_folder):
+                if im_name.endswith('jpg'):
+                    imglist.append(cv2.imread(os.path.join(in_clip_folder, im_name)))
 
-            skeleton_list = skeleton_det.run(imglist)
-            skeleton_det.save_skeleton(skeleton_list, skeleton_folder)
+            skeleton_list = skeleton_det.run(imglist, sample_rate=1)
+            # skeleton_det.save_skeleton(skeleton_list, skeleton_folder)
+    print(time.time() - time1)

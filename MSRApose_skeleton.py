@@ -36,14 +36,14 @@ from core.config import update_config
 from core.config import update_dir
 from core.loss import JointsMSELoss
 from core.function import validate
-from utils.utils import create_logger
+from tools.utils import create_logger
 
-import dataset
-import models
+import dataset_msra
+import models_msra
 
 import cv2
 import numpy as np
-from utils.transforms import get_affine_transform
+from tools.transforms import get_affine_transform
 from core.inference import get_final_preds
 
 ############ for yolo
@@ -52,7 +52,7 @@ from yolo.darknet import Darknet
 
 
 class MSRApose_skeleton():
-    def __init__(self, cuda_id=0):
+    def __init__(self, cuda_id=0, fast_yolo=False):
 
         self.time_det = 0.0
         self.time_run = 0.0
@@ -62,8 +62,13 @@ class MSRApose_skeleton():
 
         # Load yolo detection model
         print('Loading YOLO model..')
-        self.det_model = Darknet("AlphaPose/yolo/cfg/yolov3.cfg")
-        self.det_model.load_weights('AlphaPose/models/yolo/yolov3.weights')
+        if fast_yolo:
+            self.det_model = Darknet('./AlphaPose/yolo/cfg/yolov3-tiny.cfg')
+            self.det_model.load_weights('./AlphaPose/models/yolo/yolov3-tiny.weights')
+        else:
+            self.det_model = Darknet("./AlphaPose/yolo/cfg/yolov3.cfg")
+            self.det_model.load_weights('./AlphaPose/models/yolo/yolov3.weights')
+
         self.det_model.cuda()
         self.det_model.eval()
 
@@ -80,7 +85,7 @@ class MSRApose_skeleton():
         torch.backends.cudnn.enabled = config.CUDNN.ENABLED
 
         # load pre-trained model
-        self.model = eval('models.'+config.MODEL.NAME+'.get_pose_net')(
+        self.model = eval('models_msra.'+config.MODEL.NAME+'.get_pose_net')(
             config, is_train=False
         )
         print('Loading MSRA pose model..')
@@ -164,7 +169,7 @@ class MSRApose_skeleton():
 
             return preds[0]
 
-    def run(self, folder_or_imglist):
+    def run(self, folder_or_imglist, sample_rate):
         time_run_start = time.time()
 
         if type(folder_or_imglist) == 'str':
@@ -314,9 +319,9 @@ if __name__ == '__main__':
     input_folder = '/media/qcxu/qcxuDisk/Dataset/scratch_dataset/pick/clips/Video_12_4_1'
     
     imglist = []
-    for img_name in os.listdir(input_folder):
-        if img_name.endswith('jpg'):
-            imglist.append(cv2.imread(os.path.join(input_folder, img_name)))
+    for im_name in os.listdir(input_folder):
+        if im_name.endswith('jpg'):
+            imglist.append(cv2.imread(os.path.join(input_folder, im_name)))
 
     skeleton = ms.run(imglist)
 

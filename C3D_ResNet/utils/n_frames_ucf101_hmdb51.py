@@ -14,6 +14,12 @@ def class_process(dir_path, class_name):
     for image_file_name in os.listdir(video_dir_path):
       if 'image' not in image_file_name:
         continue
+      img_path = os.path.join(video_dir_path, image_file_name)
+      try:
+         with open(img_path, 'rb') as f:
+          a = 1
+      except:
+        print(img_path, '==')
       image_indices.append(int(image_file_name[6:11]))
 
     if len(image_indices) == 0:

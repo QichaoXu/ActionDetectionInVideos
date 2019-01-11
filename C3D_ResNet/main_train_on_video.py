@@ -11,7 +11,7 @@ from opts import parse_opts
 from model import generate_model
 from mean import get_mean, get_std
 from spatial_transforms import (
-    Compose, Normalize, HardScale, Scale, CenterCrop, CornerCrop, MultiScaleCornerCrop,
+    Compose, Normalize, HardScale, Scale, ScaleQC, CenterCrop, CornerCrop, MultiScaleCornerCrop,
     MultiScaleRandomCrop, RandomHorizontalFlip, ToTensor)
 from temporal_transforms import LoopPadding, TemporalRandomCrop
 from target_transforms import ClassLabel, VideoID
@@ -58,16 +58,22 @@ if __name__ == '__main__':
         norm_method = Normalize(opt.mean, opt.std)
 
     if not opt.no_train:
-        assert opt.train_crop in ['random', 'corner', 'center']
-        if opt.train_crop == 'random':
-            crop_method = MultiScaleRandomCrop(opt.scales, opt.sample_size)
-        elif opt.train_crop == 'corner':
-            crop_method = MultiScaleCornerCrop(opt.scales, opt.sample_size)
-        elif opt.train_crop == 'center':
-            crop_method = MultiScaleCornerCrop(
-                opt.scales, opt.sample_size, crop_positions=['c'])
+        # assert opt.train_crop in ['random', 'corner', 'center']
+        # if opt.train_crop == 'random':
+        #     crop_method = MultiScaleRandomCrop(opt.scales, opt.sample_size)
+        # elif opt.train_crop == 'corner':
+        #     crop_method = MultiScaleCornerCrop(opt.scales, opt.sample_size)
+        # elif opt.train_crop == 'center':
+        #     crop_method = MultiScaleCornerCrop(
+        #         opt.scales, opt.sample_size, crop_positions=['c'])
+        # spatial_transform = Compose([
+        #     crop_method,
+        #     RandomHorizontalFlip(),
+        #     ToTensor(opt.norm_value), norm_method
+        # ])
         spatial_transform = Compose([
-            crop_method,
+            ScaleQC(opt.sample_size),
+            CenterCrop(opt.sample_size),
             RandomHorizontalFlip(),
             ToTensor(opt.norm_value), norm_method
         ])
@@ -104,11 +110,12 @@ if __name__ == '__main__':
 
     if not opt.no_val:
         spatial_transform = Compose([
-            Scale(opt.sample_size),
+            ScaleQC(opt.sample_size),
             CenterCrop(opt.sample_size),
             ToTensor(opt.norm_value), norm_method
         ])
-        temporal_transform = LoopPadding(opt.sample_duration)
+        # temporal_transform = LoopPadding(opt.sample_duration)
+        temporal_transform = TemporalRandomCrop(opt.sample_duration)
         target_transform = ClassLabel()
         validation_data = get_validation_set(
             opt, spatial_transform, temporal_transform, target_transform)

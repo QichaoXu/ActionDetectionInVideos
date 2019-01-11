@@ -5,13 +5,14 @@ import os
 import cv2
 import random
 import json
+import time
 
 class skeleton_tools:
 
     def __init__(self):
         self.skeleton_size = 17
 
-    def __plot_skeleton(self, img, kp_preds, kp_scores, target_kps, result_labels=None, thres=0.75):
+    def __plot_skeleton(self, img, kp_preds, kp_scores, target_kps, is_plot=True, result_labels=None, thres=0.75):
 
         l_pair = [(0, 1), (0, 2), (1, 3), (2, 4),       # Head
             (5, 6), (5, 7), (7, 9), (6, 8), (8, 10),    # Hand
@@ -54,7 +55,7 @@ class skeleton_tools:
 
                 # Draw limbs
                 for i, (start_p, end_p) in enumerate(l_pair):
-                    if i not in target_kps:
+                    if i not in [4,5,6,7,8]:
                         continue
                         
                     if start_p in part_line and end_p in part_line:
@@ -62,10 +63,12 @@ class skeleton_tools:
                         end_xy = part_line[end_p]
                         cv2.line(img, start_xy, end_xy, line_color[i], 
                             int(2*(float(kp_scores_h[start_p]) + float(kp_scores_h[end_p])) + 1))
-            return img
+            return img, None, None
 
         else:
 
+            bbox_hand_out = []
+            bbox_human_out = []
             for h in range(len(kp_scores) // self.skeleton_size): # number of human
                 kp_preds_h = kp_preds[h*2*self.skeleton_size : (h+1)*2*self.skeleton_size]
                 kp_scores_h = kp_scores[h*self.skeleton_size : (h+1)*self.skeleton_size]
@@ -80,35 +83,47 @@ class skeleton_tools:
                 result_prob = result_labels[h][1][2]
                 if cls_map[result_cls_id] == 'scratch' and result_prob > thres:
 
-                    # Draw rectangle
+                    # get rectangle
                     x1, y1, x2, y2 = 1000, 1000, 0, 0
-                    for i in target_kps:
-                        x1 = min(x1, int(kp_preds_h[2*i]))
-                        y1 = min(y1, int(kp_preds_h[2*i+1]))
-                        x2 = max(x2, int(kp_preds_h[2*i]))
-                        y2 = max(y2, int(kp_preds_h[2*i+1]))
-                    cv2.rectangle(img, (x1, y1), (x2, y2), (0,0,255), 2)
+                    x1_h, y1_h, x2_h, y2_h = 1000, 1000, 0, 0
+                    for i in range(self.skeleton_size):
+                        x1_h = min(x1_h, int(kp_preds_h[2*i]))
+                        y1_h = min(y1_h, int(kp_preds_h[2*i+1]))
+                        x2_h = max(x2_h, int(kp_preds_h[2*i]))
+                        y2_h = max(y2_h, int(kp_preds_h[2*i+1]))
+                        if i in target_kps:
+                            x1 = min(x1, int(kp_preds_h[2*i]))
+                            y1 = min(y1, int(kp_preds_h[2*i+1]))
+                            x2 = max(x2, int(kp_preds_h[2*i]))
+                            y2 = max(y2, int(kp_preds_h[2*i+1]))
+                    bbox_hand_out.append([x1, y1, x2, y2])
+                    bbox_human_out.append([x1_h, y1_h, x2_h, y2_h])
 
-                    # put text
-                    # cv2.putText(img, '{}:{:.3f}'.format(cls_map[result_cls_id], result_prob), 
-                    #     (int(cor_x), int(cor_y)), cv2.FONT_HERSHEY_COMPLEX, 1, (0,0,255), 2)
+                    if is_plot:
+                        # # Draw rectangle
+                        # cv2.rectangle(img, (x1, y1), (x2, y2), (0,0,255), 2)
 
-                    # # Draw limbs
-                    # part_line = {}
-                    # for n in range(len(kp_scores_h)):
-                    #     cor_x, cor_y = int(kp_preds_h[2*n]), int(kp_preds_h[2*n+1])
-                    #     part_line[n] = (cor_x, cor_y)
+                        # put text
+                        cv2.putText(img, '{:.3f}'.format(result_prob), 
+                            (int(cor_x), int(cor_y)-10), cv2.FONT_HERSHEY_COMPLEX, 1, (0,0,255), 2)
 
-                    # for i, (start_p, end_p) in enumerate(l_pair):
-                    #     if i not in target_kps:
-                    #         continue
+                        # Draw limbs
+                        part_line = {}
+                        for n in range(len(kp_scores_h)):
+                            cor_x, cor_y = int(kp_preds_h[2*n]), int(kp_preds_h[2*n+1])
+                            part_line[n] = (cor_x, cor_y)
 
-                    #     if start_p in part_line and end_p in part_line:
-                    #         start_xy = part_line[start_p]
-                    #         end_xy = part_line[end_p]
-                    #         cv2.line(img, start_xy, end_xy, line_color[i], 
-                    #             int(2*(float(kp_scores_h[start_p]) + float(kp_scores_h[end_p])) + 1))
-            return img
+                        for i, (start_p, end_p) in enumerate(l_pair):
+                            if i not in [4,5,6,7,8]:
+                                continue
+
+                            if start_p in part_line and end_p in part_line:
+                                start_xy = part_line[start_p]
+                                end_xy = part_line[end_p]
+                                cv2.line(img, start_xy, end_xy, line_color[i], 
+                                    int(2*(float(kp_scores_h[start_p]) + float(kp_scores_h[end_p])) + 1))
+
+            return img, bbox_hand_out, bbox_human_out
 
     def __get_pred_score(self, kp):
         kp_preds = []
@@ -227,8 +242,8 @@ class skeleton_tools:
 
     def vis_skeleton(self, in_clip_folder, skeleton_folder, json_file_name, 
                 im_name_all, kp_preds_all, kp_scores_all, imglist,
-                result_labels=None, is_save=False, is_vis=False, thres=0.75,
-                waitTime=5):
+                result_labels=None, is_save=False, is_vis=False, is_plot=True,
+                thres=0.75, waitTime=5):
 
         target_kps = [5, 6, 7, 8, 9, 10]
 
@@ -241,14 +256,16 @@ class skeleton_tools:
             return
 
         img_out_all = []
-        print(result_labels)
+        bbox_hand_out_all = []
+        bbox_human_out_all = []
         for i, im_name in enumerate(im_name_all):
             if imglist is None:
                 # print(os.path.join(in_clip_folder, im_name))
                 img = cv2.imread(os.path.join(in_clip_folder, im_name))
             else:
                 img = imglist[i].copy()
-            img_out = self.__plot_skeleton(img, kp_preds_all[i], kp_scores_all[i], target_kps, result_labels, thres)
+            img_out, bbox_hand_out, bbox_human_out = self.__plot_skeleton(img, kp_preds_all[i], kp_scores_all[i], 
+                target_kps, is_plot, result_labels, thres)
             # print(img_out.shape)
 
             if is_vis:
@@ -269,7 +286,10 @@ class skeleton_tools:
                 cv2.imwrite(os.path.join(vis_out_folder, im_name), img_out)
             else:
                 img_out_all.append(img_out)
-        return img_out_all
+                bbox_hand_out_all.append(bbox_hand_out)
+                bbox_human_out_all.append(bbox_human_out)
+
+        return img_out_all, bbox_hand_out_all[0], bbox_human_out_all[0]
 
     def __multi_moving_average(self, X, window_size, times):
         for t in range(times):
@@ -429,10 +449,17 @@ class skeleton_tools:
         target = target.astype(np.uint8)
         return target[:, :, np.newaxis]
 
-    def get_hand_clip(self, in_clip_folder, skeleton_folder, out_clip_folder, json_file_name, 
+    def get_hand_clip(self, in_clip_folder, out_clip_folder, skeleton_folder, json_file_name, 
                 im_name_all, kp_preds_all, kp_scores_all, imglist,
                 is_save=False, is_vis=False, is_static_BG=False, is_labeled=False, 
                 is_heatmap=False, waitTime=5):
+
+        if imglist is None and not os.path.exists(in_clip_folder):
+            print('Error! imglist is None and no such in_clip_folder exists!\n\n')
+            return
+        if im_name_all is None and not os.path.exists(json_file_name):
+            print('Error! im_name_all is None and no such json_file_name exists!\n\n')
+            return
 
         target_kps = [5, 6, 7, 8, 9, 10]
 
@@ -445,14 +472,18 @@ class skeleton_tools:
             return
 
         ## smooth keypoints
+        time1 = time.time()
         kp_preds_all = self.__smooth_coordinate(kp_preds_all)
+        # print(time.time() - time1)
 
+        time1 = time.time()
         hand_bboxs = self.__get_hand_bboxs(kp_preds_all, kp_scores_all, target_kps, is_static_BG)
-
+        # print(time.time() - time1)
         ## if clip is already labeled, only one person is labeled in each clip
         if is_labeled:
             hand_bboxs = hand_bboxs[:1]
 
+        time1 = time.time()
         img_out_all = []
         heatmap_out_all = []
         for h, hand_bbox in enumerate(hand_bboxs):
@@ -476,8 +507,20 @@ class skeleton_tools:
                     else:
                         x1, y1, x2, y2 = hand_bbox[i]
                         heatmap_out = self.__crop_moving_image(heatmap, x1, y1, x2, y2)
+
                     if heatmap_out is not None:
                         heatmap_out_h.append(heatmap_out)
+
+                        if is_vis:
+                            cv2.imshow('skeletons', heatmap_out)
+                            cv2.waitKey(waitTime)
+
+                        if is_save:
+                            out_folder = out_clip_folder + '_' + str(h+1)
+                            if not os.path.exists(out_folder):
+                                os.makedirs(out_folder)
+                            heatmap_name = im_name.split('.')[0] + '_heatmap.jpg'
+                            cv2.imwrite(os.path.join(out_folder, heatmap_name), heatmap_out)
 
                 if is_static_BG:
                     x1, y1, x2, y2 = hand_bbox
@@ -487,53 +530,73 @@ class skeleton_tools:
                     img_out = self.__crop_moving_image(img, x1, y1, x2, y2)
 
                 if img_out is not None:
+                    img_out_h.append(img_out)
+
                     if is_vis:
-                        cv2.imshow('skeletons', img_out)
+                        cv2.imshow('images', img_out)
                         cv2.waitKey(waitTime)
 
                     if is_save:
                         out_folder = out_clip_folder + '_' + str(h+1)
                         if not os.path.exists(out_folder):
                             os.makedirs(out_folder)
-                        if is_heatmap:
-                            im_name = im_name.split('.')[0] + '_heatmap.jpg'
-                            cv2.imwrite(os.path.join(out_folder, im_name), img_out)
-                        else:
-                            cv2.imwrite(os.path.join(out_folder, im_name), img_out)
-                    else:
-                        img_out_h.append(img_out)
+                        img_name = im_name.split('.')[0] + '.jpg'
+                        cv2.imwrite(os.path.join(out_folder, img_name), img_out)
 
             img_out_all.append(img_out_h)
             heatmap_out_all.append(heatmap_out_h)
+        # print(time.time() - time1)
 
         return img_out_all, heatmap_out_all
 
+def video_to_images():
+    import subprocess
 
-def create_TrainTestlist(clip_folder, TrainTest_folder, sample_rate):
+    base_folder = '/media/qcxu/qcxuDisk/Dataset/scratch_dataset/video_normal'
+    dst_path = '/media/qcxu/qcxuDisk/Dataset/scratch_dataset/image_normal'
+    for file_name in os.listdir(base_folder):
+        if not ('.avi' in file_name or '.mp4' in file_name):
+            continue
+        name, ext = os.path.splitext(file_name)
+
+        dst_directory_path = os.path.join(dst_path, name)
+        print(dst_directory_path)
+        if not os.path.exists(dst_directory_path):
+            os.mkdir(dst_directory_path)
+
+        video_file_path = os.path.join(base_folder, file_name)
+        cmd = 'ffmpeg -i \"{}\" -vf scale=-1:240 \"{}/image_%05d.jpg\"'.format(video_file_path, dst_directory_path)
+        print(cmd)
+        subprocess.call(cmd, shell=True)
+
+def create_TrainTestlist(clip_folder, TrainTest_folder, train_test_rate, class_sample_rate):
 
     label_map = {'others':'1', 'pick':'2', 'scratch':'3'}
+    label_map_sample = {'others':0, 'pick':1, 'scratch':2}
 
-    Trainlist = []
-    Testlist = []
+    TrainTestlist = []
     for sub in sorted(os.listdir(clip_folder)):
         sub_folder = clip_folder + sub
         count = 0
-        for subsub in sorted(os.listdir(sub_folder)):
-            n_frames = len(os.listdir(sub_folder+'/'+subsub))
-            contents = sub + '/' + subsub + ' ' + label_map[sub] + '\n'
-            if sample_rate is None: # only test
-                Trainlist.append(contents)
-            else:
-                if count % sample_rate == 0: # test
-                    Testlist.append(contents)
-                else: # train
-                    Trainlist.append(contents)
+        sample_rate = class_sample_rate[label_map_sample[sub]]
+        for i, subsub in enumerate(sorted(os.listdir(sub_folder))):
+            
+            if i % sample_rate != 0:
+                continue
 
+            contents = sub + '/' + subsub + ' ' + label_map[sub] + '\n'
+            TrainTestlist.append(contents)
             count += 1
         print(sub, count)
 
-    random.shuffle(Trainlist)
-    random.shuffle(Testlist)
+    print('TrainTestlist', len(TrainTestlist))
+    random.shuffle(TrainTestlist)
+
+    num_test = len(TrainTestlist) // train_test_rate
+    Trainlist = TrainTestlist[num_test:]
+    Testlist = TrainTestlist[:num_test]
+    print('Trainlist', len(Trainlist))
+    print('Testlist', len(Testlist))
 
     Trainlist_name = TrainTest_folder + 'trainlist01.txt'
     Trainlist_file = open(Trainlist_name, 'w')
@@ -560,6 +623,30 @@ def create_Testlist(clip_folder, TrainTest_folder):
             Testlist.write(contents)
 
     Testlist.close()
+
+
+
+def test():
+    dst_folder = '/media/qcxu/qcxuDisk/Dataset/scratch_dataset/hand_static_BG/others/'
+    for sub in os.listdir(dst_folder):
+        sub_folder = os.path.join(dst_folder, sub)
+        # heatmap_name_list = [img_name for img_name in os.listdir(sub_folder) if img_name.endswith('.jpg') and 'heatmap' in img_name]
+        image_name_list = [img_name for img_name in os.listdir(sub_folder) if img_name.endswith('.jpg') and not 'heatmap' in img_name]
+
+        # N1 = len(heatmap_name_list)
+        # N2 = len(image_name_list)
+
+        # # print(sub, N1, N2)
+        # if N1 != N2:
+        #     print(sub, '==== ERROR ====')
+
+        img = cv2.imread(os.path.join(sub_folder, image_name_list[0]))
+        width, height = img.shape[:2]
+        if width > height:
+            ratio = width / height
+        else:
+            ratio = height / width
+        print(sub, ratio)
 
 
 def create_clip():
@@ -627,8 +714,11 @@ def create_clip():
 
 if __name__ == "__main__":
 
-    create_clip()
+    # video_to_images()
+    # create_clip()
 
-    # clip_folder = '/media/qcxu/qcxuDisk/Dataset/scratch_dataset/hand_static_BG/'
-    # TrainTest_folder = '/media/qcxu/qcxuDisk/Dataset/scratch_dataset/TrainTestlist/'
-    # create_TrainTestlist(clip_folder, TrainTest_folder, sample_rate=None)
+    clip_folder = '/media/qcxu/qcxuDisk/Dataset/scratch_dataset/hand_static_BG/'
+    TrainTest_folder = '/media/qcxu/qcxuDisk/Dataset/scratch_dataset/TrainTestlist/hand_static_BG/'
+    create_TrainTestlist(clip_folder, TrainTest_folder, train_test_rate=15, class_sample_rate=[5, 1, 1])
+   
+    # test()

@@ -209,7 +209,11 @@ def generate_model(opt):
                 sample_duration=opt.sample_duration)
 
     if not opt.no_cuda:
-        model = model.cuda()
+        if opt.cuda_id is None:
+            model = model.cuda()
+        else:
+            model = model.cuda(opt.cuda_id)
+        # model = nn.DataParallel(model, device_ids=None)
         if opt.cuda_id is None:
             model = nn.DataParallel(model, device_ids=None)
         else:
@@ -218,15 +222,17 @@ def generate_model(opt):
         if opt.pretrain_path:
             print('    loading pretrained model {}'.format(opt.pretrain_path))
             pretrain = torch.load(opt.pretrain_path)
-            # assert opt.arch == pretrain['arch']
 
-            # model.load_state_dict(pretrain['state_dict'])
-            pretrained_dict = pretrain['state_dict']
-            model_dict = model.state_dict()
+            if opt.model == 'resnet_skeleton':
+                pretrained_dict = pretrain['state_dict']
+                model_dict = model.state_dict()
 
-            pretrained_dict = {k: v for k, v in pretrained_dict.items() if k in model_dict}
-            model_dict.update(pretrained_dict) 
-            model.load_state_dict(model_dict)
+                pretrained_dict = {k: v for k, v in pretrained_dict.items() if k in model_dict}
+                model_dict.update(pretrained_dict) 
+                model.load_state_dict(model_dict)
+            else:
+                assert opt.arch == pretrain['arch']
+                model.load_state_dict(pretrain['state_dict'])
 
             if opt.model == 'densenet':
                 model.module.classifier = nn.Linear(
