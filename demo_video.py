@@ -7,76 +7,93 @@ import cv2
 import time
 
 
-def demo_video(is_save_avi=False, is_static_BG=True):
+def demo_video(is_save_avi=False, is_static_BG=True, is_heatmap=False):
 
-    T = 45
-    reg_model_file = 'results-scratch-18-static_BG-45/save_200.pth'
+    T = 30
+    if is_heatmap:
+        reg_model_file = 'results-scratch-18-static_BG-30-skeleton/save_200.pth'
+        model_type = 'resnet_skeleton'
+        thres = 0.5
+    else:
+        reg_model_file = 'results-scratch-18-static_BG-30-iter5/save_200.pth'
+        model_type = 'resnet'
+        thres = 0.5
+
     skeleton_opt = 'Alphapose' #'Alphapose' #'Openpose'
 
-    video_path = '/media/qcxu/qcxuDisk/Dataset/scratch_dataset/video_new/'
-    video_name = 'Video44'
-    video_exp = '.mp4'
-    # video_path = '/media/qcxu/qcxuDisk/windows_datasets_all/videos_test/small_videos/'
-    # video_name = '1_7'
-    # video_exp = '.avi'
+    det = Detection(reg_model_file, model_type, skeleton_opt, cuda_id_list=[0,1],
+        sample_duration=T, sample_rate=1, is_static_BG=True, is_heatmap=False, thres=thres)
 
-    # input_video_name = 0
-    input_video_name = video_path + video_name + video_exp
-    if input_video_name == 0:
-        print('\nreading video from camera ...\n')
-    else:
+    # video_path = '/media/qcxu/qcxuDisk/Dataset/scratch_dataset/videos_test/'
+    video_path = '/media/qcxu/qcxuDisk/windows_datasets_all/videos_test'
+    # video_name = '192.168.1.102_01_20190117204506847.mp4'
+    out_path = '/media/qcxu/qcxuDisk/Dataset/scratch_dataset/videos_test/result_0.2_hand_0.5'
+    for video_name in os.listdir(video_path):
+        if not '.mp4' in video_name and not '.webm' in video_name and not '.avi' in video_name:
+            continue
+    
+        input_video_name = os.path.join(video_path, video_name)
         print('\nreading video from file ' + input_video_name + '\n')
         if not os.path.exists(input_video_name):
             print('Error! No such video exists')
             return
-    stream = cv2.VideoCapture(input_video_name)
+        stream = cv2.VideoCapture(input_video_name)
 
-    if is_save_avi:
-        out_video_name = video_path + video_name + '_'+ skeleton_opt + '_' + str(is_static_BG) + '.avi'
-        fourcc = cv2.VideoWriter_fourcc(*'XVID')
         width = int(stream.get(cv2.CAP_PROP_FRAME_WIDTH))
         height = int(stream.get(cv2.CAP_PROP_FRAME_HEIGHT))
-        out = cv2.VideoWriter(out_video_name, fourcc, 25.0, (width, height))
+        fixed_width = 480
+        height = int(fixed_width/width*height)
+        width = fixed_width
 
-    det = Detection(reg_model_file, skeleton_opt, cuda_id_list=[1,0],
-        sample_duration=T, sample_rate=15, is_static_BG=True, is_heatmap=False, thres=0.7)
+        out = None
+        if is_save_avi:
+            out_video_name = os.path.join(out_path, '.'.join(video_name.split('.')[:-1]) + '_'+ skeleton_opt + '.avi')
+            fourcc = cv2.VideoWriter_fourcc(*'XVID')
+            out = cv2.VideoWriter(out_video_name, fourcc, 25.0, (width, height))
 
-    time1 = time.time()
+        time1 = time.time()
 
-    ret = True
-    frame_id = 0
-    img_out_all = None
-    imglist = []
-    while ret:
-        (ret, frame) = stream.read()
-        frame_id += 1
+        frame_id = 0
+        frame_show_id = 0
+        img_out_all = None
+        imglist = []
+        while True:
+            (ret, frame) = stream.read()
+            if not ret:
+                break
 
-        # if ret:
-        #     cv2.imshow('frame', frame)
-        #     cv2.waitKey(5)
+            frame = cv2.resize(frame, (width, height))
+            cv2.putText(frame, str(frame_show_id), (width-80, 25), 
+                cv2.FONT_HERSHEY_COMPLEX, 1, (0,0,255), 2)
 
-        if frame_id <= T:
-            imglist.append(frame)
-            if frame_id == T:
-                frame_id = 0
-                img_out_all = det.run(imglist)
-                imglist = []
-            else:
-                if not is_save_avi or img_out_all is None:
-                    continue
+            frame_id += 1
+            frame_show_id += 1
+
+            if frame_id <= T:
+                imglist.append(frame)
+                if frame_id == T:
+                    frame_id = 0
+                    img_out_all = det.run(imglist)
+                    imglist = []
                 else:
-                    out.write(img_out_all[frame_id-1])
+                    if not is_save_avi or img_out_all is None:
+                        continue
+                    else:
+                        out.write(img_out_all[frame_id-1])
 
-    det.print_runtime()
+        det.print_runtime()
 
-    if is_save_avi:
-        out.release()
-    cv2.destroyAllWindows()
+        if is_save_avi:
+            out.release()
+        cv2.destroyAllWindows()
 
-    print('total time', time.time() - time1)
+        print('total time = ', time.time() - time1)
+        print('total frame = ', frame_show_id)
+        print('process fps = ', frame_show_id / (time.time() - time1))
+
 
 
 if __name__ == "__main__":
 
-    demo_video(is_save_avi=False, is_static_BG=True)
+    demo_video(is_save_avi=True, is_static_BG=True)
 

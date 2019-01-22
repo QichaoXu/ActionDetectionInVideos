@@ -17,14 +17,15 @@ def val_epoch(epoch, data_loader, model, criterion, opt, logger):
     accuracies = AverageMeter()
 
     end_time = time.time()
-    for i, (inputs, targets) in enumerate(data_loader):
+    for i, (inputs_list, targets) in enumerate(data_loader):
         data_time.update(time.time() - end_time)
 
         if not opt.no_cuda:
             targets = targets.cuda(async=True)
-        inputs = Variable(inputs, volatile=True)
-        targets = Variable(targets, volatile=True)
-        outputs = model(inputs)
+        inputs = Variable(inputs_list[0])
+        heatmap = Variable(inputs_list[1])
+        targets = Variable(targets)
+        outputs = model(inputs, heatmap)
         loss = criterion(outputs, targets)
         acc = calculate_accuracy(outputs, targets)
 

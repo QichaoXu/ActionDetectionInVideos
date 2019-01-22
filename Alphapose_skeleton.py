@@ -132,6 +132,10 @@ class Alphapose_skeleton:
                     kp_preds = human['keypoints']
                     kp_scores = human['kp_score']
 
+                    # ## remove small hand 
+                    # if float(kp_scores[9]) < 0.2 and float(kp_scores[10]) < 0.2:
+                    #     continue
+
                     for n in range(kp_scores.shape[0]):
                         skeleton_list[-1].append(int(kp_preds[n, 0]))
                         skeleton_list[-1].append(int(kp_preds[n, 1]))

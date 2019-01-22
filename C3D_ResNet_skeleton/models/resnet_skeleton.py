@@ -159,7 +159,8 @@ class ResNet_skeleton(nn.Module):
 
         self.avgpool = nn.AvgPool3d(
             (last_duration, last_size, last_size), stride=1)
-        self.fc = nn.Linear(512 * block.expansion, num_classes)
+        # self.fc = nn.Linear(512 * block.expansion, num_classes)
+        self.fc = nn.Linear(1024 * block.expansion, num_classes) ## for concatenate
 
         for m in self.modules():
             if isinstance(m, nn.Conv3d):
@@ -224,12 +225,23 @@ class ResNet_skeleton(nn.Module):
         x = self.layer3(x)
         x = self.layer4(x)
 
-        ## fused features
-        x = 0.5*x + 0.5*y
+        # print(x.size())
+        # print(y.size())
 
+        ### fused features
+        ## method 1). weighted sum up
+        # x = 0.8*x + 0.2*y
+        # x = self.avgpool(x)
+
+        ## method 2). concatenate
         x = self.avgpool(x)
-        
+        y = self.avgpool(y)
+        x = torch.cat((x, y), dim=1)
+
+        # print(x.size())
         x = x.view(x.size(0), -1)
+        # print(x.size())
+
         out = self.fc(x)
 
         return out
@@ -247,8 +259,8 @@ def get_fine_tuning_parameters(model, ft_begin_index):
     parameters = []
     for k, v in model.named_parameters():
         for ft_module in ft_module_names:
-            # print(ft_module, k)
             if ft_module in k:
+                # print(ft_module, k)
                 parameters.append({'params': v})
                 break
         else:

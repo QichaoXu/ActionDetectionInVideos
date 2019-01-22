@@ -60,11 +60,20 @@ if __name__ == '__main__':
     csv_dir_path = sys.argv[1]
     print(csv_dir_path)
 
-    split_index = 1
-    label_csv_path = os.path.join(csv_dir_path, 'classInd.txt')
-    train_csv_path = os.path.join(csv_dir_path, 'trainlist0{}.txt'.format(split_index))
-    val_csv_path = os.path.join(csv_dir_path, 'testlist0{}.txt'.format(split_index))
-    dst_json_path = os.path.join(csv_dir_path, 'ucf101_0{}.json'.format(split_index))
+    # split_index = 1
+    # label_csv_path = os.path.join(csv_dir_path, 'classInd.txt')
+    # train_csv_path = os.path.join(csv_dir_path, 'trainlist0{}.txt'.format(split_index))
+    # val_csv_path = os.path.join(csv_dir_path, 'testlist0{}.txt'.format(split_index))
+    # dst_json_path = os.path.join(csv_dir_path, 'ucf101_0{}.json'.format(split_index))
 
-    convert_ucf101_csv_to_activitynet_json(label_csv_path, train_csv_path,
+    # convert_ucf101_csv_to_activitynet_json(label_csv_path, train_csv_path,
+    #                                            val_csv_path, dst_json_path)
+
+    for split_index in range(6):
+        label_csv_path = os.path.join(csv_dir_path, 'classInd.txt')
+        train_csv_path = os.path.join(csv_dir_path, 'trainlist0{}.txt'.format(split_index))
+        val_csv_path = os.path.join(csv_dir_path, 'testlist0{}.txt'.format(1))
+        dst_json_path = os.path.join(csv_dir_path, 'ucf101_0{}.json'.format(split_index))
+
+        convert_ucf101_csv_to_activitynet_json(label_csv_path, train_csv_path,
                                                val_csv_path, dst_json_path)

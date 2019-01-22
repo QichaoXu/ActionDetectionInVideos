@@ -40,7 +40,7 @@ class SkeletonToolThreads(threading.Thread):
                 is_heatmap=self.is_heatmap)
 
             self.queue_clip_all.put([clip_all, heatmap_all, im_name_all, kp_preds_all, kp_scores_all, imglist, clip_id])
-            print('queue_clip_all put', self.queue_clip_all.qsize(), clip_id, time.time() - time1)
+            # print('queue_clip_all put', self.queue_clip_all.qsize(), clip_id, time.time() - time1)
 
         self.queue_clip_all.put(['quit', 'quit', 'quit', 'quit', 'quit', 'quit', 'quit'])
         self.action_recognition_threads.join()
@@ -66,20 +66,8 @@ class ActionRecognitionThreads(threading.Thread):
                 break
 
             time1 = time.time()
-            # result_labels = []
-            # for i, clip in enumerate(clip_all):
-            #     clip_PIL = [Image.fromarray(cv2.cvtColor(img, cv2.COLOR_BGR2RGB)) for img in clip]
-            #     if clip_PIL is None or len(clip_PIL) == 0:
-            #         result_labels.append([0, [0.0, 0.0, 0.0]])
-            #     else:
-            #         if self.is_heatmap:
-            #             heatmap_PIL = [Image.fromarray(img[:, :, 0]) for img in heatmap_all[i]]
-            #             label, probs = self.reg.run(clip_PIL, heatmap_PIL)
-            #         else:
-            #             label, probs = self.reg.run(clip_PIL)
-            #         result_labels.append([label, probs])
-            empty_list = []
 
+            empty_list = []
             clip_PIL_batch = []
             heatmap_PIL_batch = []
             for i, clip in enumerate(clip_all):
@@ -104,7 +92,7 @@ class ActionRecognitionThreads(threading.Thread):
                 result_labels.insert(i, [0, [0.0, 0.0, 0.0]])
 
             self.queue_result_labels.put([result_labels, im_name_all, kp_preds_all, kp_scores_all, imglist, clip_id])
-            print('queue_result_labels put', self.queue_result_labels.qsize(), clip_id, time.time() - time1)
+            # print('queue_result_labels put', self.queue_result_labels.qsize(), clip_id, time.time() - time1)
 
         self.queue_result_labels.put(['quit', 'quit', 'quit', 'quit', 'quit', 'quit'])
         self.skeleton_vis_threads.join()
@@ -128,14 +116,14 @@ class SkeletonVisThreads(threading.Thread):
             if isinstance(result_labels, str) and result_labels == 'quit':
                 break
 
-            img_out_all, bbox_hand_out_all, bbox_human_out_all = self.st.vis_skeleton('None', 'None', 'None.json',
+            img_out_all, prob_out_all, bbox_hand_out_all, bbox_human_out_all = self.st.vis_skeleton('None', 'None', 'None.json',
                 im_name_all, kp_preds_all, kp_scores_all, imglist,
                 result_labels=result_labels, is_save=False, is_vis=False, is_plot=True, thres=self.thres)
 
-            self.queue_img_out_all.put([img_out_all, bbox_hand_out_all, bbox_human_out_all, clip_id])
+            self.queue_img_out_all.put([img_out_all, prob_out_all, bbox_hand_out_all, bbox_human_out_all, clip_id])
             self.out_show_id += 1
 
-        self.queue_img_out_all.put(['quit', 'quit', 'quit', 'quit'])
+        self.queue_img_out_all.put(['quit', 'quit', 'quit', 'quit', 'quit'])
         print('=================== finish Skeleton, VisThreads ===================')
 
 
@@ -149,10 +137,10 @@ class DetectionMultiThreads(threading.Thread):
 
         if skeleton_opt == 'MSRA':
             from MSRApose_skeleton import MSRApose_skeleton
-            skeleton_det = MSRApose_skeleton(cuda_id=skeleton_cuda_id, fast_yolo=True)
+            skeleton_det = MSRApose_skeleton(cuda_id=skeleton_cuda_id, fast_yolo=False)
         elif skeleton_opt == 'Alphapose':
             from Alphapose_skeleton import Alphapose_skeleton
-            skeleton_det = Alphapose_skeleton(cuda_id=skeleton_cuda_id, fast_yolo=True)
+            skeleton_det = Alphapose_skeleton(cuda_id=skeleton_cuda_id, fast_yolo=False)
         elif skeleton_opt == 'Openpose':
             from Openpose_skeleton import Openpose_skeleton
             skeleton_det = Openpose_skeleton(cuda_id=skeleton_cuda_id)
@@ -198,7 +186,7 @@ class DetectionMultiThreads(threading.Thread):
             skeleton = self.skeleton_det.run(imglist, self.sample_rate)
 
             self.queue_skeleton.put([imglist, skeleton, clip_id])
-            print('queue_skeleton put', self.queue_skeleton.qsize(), clip_id, time.time() - time1)
+            # print('queue_skeleton put', self.queue_skeleton.qsize(), clip_id, time.time() - time1)
 
         self.queue_skeleton.put(['quit', 'quit', 'quit'])
         self.skeleton_tool_threads.join()

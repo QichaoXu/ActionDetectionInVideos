@@ -63,10 +63,11 @@ class skeleton_tools:
                         end_xy = part_line[end_p]
                         cv2.line(img, start_xy, end_xy, line_color[i], 
                             int(2*(float(kp_scores_h[start_p]) + float(kp_scores_h[end_p])) + 1))
-            return img, None, None
+            return img, None, None, None
 
         else:
 
+            prob_out = []
             bbox_hand_out = []
             bbox_human_out = []
             for h in range(len(kp_scores) // self.skeleton_size): # number of human
@@ -81,7 +82,8 @@ class skeleton_tools:
                 cls_map = ['others', 'pick', 'scratch']
                 result_cls_id = int(result_labels[h][0])
                 result_prob = result_labels[h][1][2]
-                if cls_map[result_cls_id] == 'scratch' and result_prob > thres:
+                # if cls_map[result_cls_id] == 'scratch' and result_prob > thres:
+                if result_prob > thres:
 
                     # get rectangle
                     x1, y1, x2, y2 = 1000, 1000, 0, 0
@@ -98,13 +100,14 @@ class skeleton_tools:
                             y2 = max(y2, int(kp_preds_h[2*i+1]))
                     bbox_hand_out.append([x1, y1, x2, y2])
                     bbox_human_out.append([x1_h, y1_h, x2_h, y2_h])
+                    prob_out.append(result_prob)
 
                     if is_plot:
-                        # # Draw rectangle
-                        # cv2.rectangle(img, (x1, y1), (x2, y2), (0,0,255), 2)
+                        # Draw rectangle
+                        cv2.rectangle(img, (x1, y1), (x2, y2), (0,0,255), 2)
 
                         # put text
-                        cv2.putText(img, '{:.3f}'.format(result_prob), 
+                        cv2.putText(img, '{:.2f}'.format(result_prob), 
                             (int(cor_x), int(cor_y)-10), cv2.FONT_HERSHEY_COMPLEX, 1, (0,0,255), 2)
 
                         # Draw limbs
@@ -123,7 +126,7 @@ class skeleton_tools:
                                 cv2.line(img, start_xy, end_xy, line_color[i], 
                                     int(2*(float(kp_scores_h[start_p]) + float(kp_scores_h[end_p])) + 1))
 
-            return img, bbox_hand_out, bbox_human_out
+            return img, prob_out, bbox_hand_out, bbox_human_out
 
     def __get_pred_score(self, kp):
         kp_preds = []
@@ -256,6 +259,7 @@ class skeleton_tools:
             return
 
         img_out_all = []
+        prob_out_all = []
         bbox_hand_out_all = []
         bbox_human_out_all = []
         for i, im_name in enumerate(im_name_all):
@@ -264,7 +268,7 @@ class skeleton_tools:
                 img = cv2.imread(os.path.join(in_clip_folder, im_name))
             else:
                 img = imglist[i].copy()
-            img_out, bbox_hand_out, bbox_human_out = self.__plot_skeleton(img, kp_preds_all[i], kp_scores_all[i], 
+            img_out, prob_out, bbox_hand_out, bbox_human_out = self.__plot_skeleton(img, kp_preds_all[i], kp_scores_all[i], 
                 target_kps, is_plot, result_labels, thres)
             # print(img_out.shape)
 
@@ -288,8 +292,9 @@ class skeleton_tools:
                 img_out_all.append(img_out)
                 bbox_hand_out_all.append(bbox_hand_out)
                 bbox_human_out_all.append(bbox_human_out)
+                prob_out_all.append(prob_out)
 
-        return img_out_all, bbox_hand_out_all[0], bbox_human_out_all[0]
+        return img_out_all, prob_out_all[0], bbox_hand_out_all[0], bbox_human_out_all[0]
 
     def __multi_moving_average(self, X, window_size, times):
         for t in range(times):
@@ -549,105 +554,6 @@ class skeleton_tools:
 
         return img_out_all, heatmap_out_all
 
-def video_to_images():
-    import subprocess
-
-    base_folder = '/media/qcxu/qcxuDisk/Dataset/scratch_dataset/video_normal'
-    dst_path = '/media/qcxu/qcxuDisk/Dataset/scratch_dataset/image_normal'
-    for file_name in os.listdir(base_folder):
-        if not ('.avi' in file_name or '.mp4' in file_name):
-            continue
-        name, ext = os.path.splitext(file_name)
-
-        dst_directory_path = os.path.join(dst_path, name)
-        print(dst_directory_path)
-        if not os.path.exists(dst_directory_path):
-            os.mkdir(dst_directory_path)
-
-        video_file_path = os.path.join(base_folder, file_name)
-        cmd = 'ffmpeg -i \"{}\" -vf scale=-1:240 \"{}/image_%05d.jpg\"'.format(video_file_path, dst_directory_path)
-        print(cmd)
-        subprocess.call(cmd, shell=True)
-
-def create_TrainTestlist(clip_folder, TrainTest_folder, train_test_rate, class_sample_rate):
-
-    label_map = {'others':'1', 'pick':'2', 'scratch':'3'}
-    label_map_sample = {'others':0, 'pick':1, 'scratch':2}
-
-    TrainTestlist = []
-    for sub in sorted(os.listdir(clip_folder)):
-        sub_folder = clip_folder + sub
-        count = 0
-        sample_rate = class_sample_rate[label_map_sample[sub]]
-        for i, subsub in enumerate(sorted(os.listdir(sub_folder))):
-            
-            if i % sample_rate != 0:
-                continue
-
-            contents = sub + '/' + subsub + ' ' + label_map[sub] + '\n'
-            TrainTestlist.append(contents)
-            count += 1
-        print(sub, count)
-
-    print('TrainTestlist', len(TrainTestlist))
-    random.shuffle(TrainTestlist)
-
-    num_test = len(TrainTestlist) // train_test_rate
-    Trainlist = TrainTestlist[num_test:]
-    Testlist = TrainTestlist[:num_test]
-    print('Trainlist', len(Trainlist))
-    print('Testlist', len(Testlist))
-
-    Trainlist_name = TrainTest_folder + 'trainlist01.txt'
-    Trainlist_file = open(Trainlist_name, 'w')
-    for contents in Trainlist:
-        Trainlist_file.write(contents)
-    Trainlist_file.close()
-
-    Testlist_name = TrainTest_folder + 'testlist01.txt'
-    Testlist_file = open(Testlist_name, 'w')
-    for contents in Testlist:
-        Testlist_file.write(contents)
-    Testlist_file.close()
-
-def create_Testlist(clip_folder, TrainTest_folder):
-
-    Testlist_name = TrainTest_folder + '/testlist01.txt'
-
-    Testlist = open(Testlist_name, 'w')
-    print(clip_folder)
-    for sub in sorted(os.listdir(clip_folder)):
-        sub_folder = clip_folder + sub
-        for subsub in sorted(os.listdir(sub_folder)):
-            contents = sub + '/' + subsub + ' 0' + '\n'
-            Testlist.write(contents)
-
-    Testlist.close()
-
-
-
-def test():
-    dst_folder = '/media/qcxu/qcxuDisk/Dataset/scratch_dataset/hand_static_BG/others/'
-    for sub in os.listdir(dst_folder):
-        sub_folder = os.path.join(dst_folder, sub)
-        # heatmap_name_list = [img_name for img_name in os.listdir(sub_folder) if img_name.endswith('.jpg') and 'heatmap' in img_name]
-        image_name_list = [img_name for img_name in os.listdir(sub_folder) if img_name.endswith('.jpg') and not 'heatmap' in img_name]
-
-        # N1 = len(heatmap_name_list)
-        # N2 = len(image_name_list)
-
-        # # print(sub, N1, N2)
-        # if N1 != N2:
-        #     print(sub, '==== ERROR ====')
-
-        img = cv2.imread(os.path.join(sub_folder, image_name_list[0]))
-        width, height = img.shape[:2]
-        if width > height:
-            ratio = width / height
-        else:
-            ratio = height / width
-        print(sub, ratio)
-
 
 def create_clip():
 
@@ -659,12 +565,14 @@ def create_clip():
 
     base_folder = '/media/qcxu/qcxuDisk/Dataset/scratch_dataset/'
     __action__ = ['others', 'pick', 'scratch']
-    bad_others_list = [line.split('\n')[0] for line in open(os.path.join(base_folder, 'bad_others.txt'), 'r')]
+    bad_others_list = ['_'.join(line.split('_')[1:5]) for line in open(os.path.join(base_folder, 
+        'bad_others', 'bad_others.txt'), 'r')]
+    # print(bad_others_list)
 
     # base_folder = '/media/qcxu/qcxuDisk/windows_datasets_all/clips/'
     # __action__ = ['normal', 'clean', 'pick', 'scratch']
 
-    st = skeleton_tools()
+    # st = skeleton_tools()
 
     for act in __action__:
 
@@ -672,53 +580,54 @@ def create_clip():
         if act == 'others':
             is_labeled = False
 
-        base_in_clip_folder = base_folder + act + '/clips/'
+        if act != 'others':
+            continue
+
+        base_in_clip_folder = base_folder + act + '/skeletons/'
         base_skeleton_folder = base_folder + act + '/skeletons/'
         base_out_clip_folder = base_folder + ske_folder + '/' + act + '/'
 
         for sub_id, sub in enumerate(os.listdir(base_in_clip_folder)):
 
+            # print(sub)
             if sub in bad_others_list:
-                continue
                 print('bad_others_list', sub)
-
-            # if act != 'pick' or sub[:8] != 'Video_12':
-            #     continue
-
-            # if act == 'others':# or sub != 'Video_11_1_1':
-            #     continue
-
-            if act == 'others' and sub_id % 4 != 0:
+                # print(os.path.join(base_in_clip_folder, sub), os.path.join(base_folder, 'bad_others', sub))
+                os.rename(os.path.join(base_in_clip_folder, sub), os.path.join(base_folder, 'bad_others', sub))
                 continue
 
-            print(act, sub)
+            # # if act != 'pick' or sub[:8] != 'Video_12':
+            # #     continue
 
-            in_clip_folder = base_in_clip_folder + sub
-            skeleton_folder = base_skeleton_folder + sub
-            out_clip_folder = base_out_clip_folder + act + '_' + sub
+            # # if act == 'others':# or sub != 'Video_11_1_1':
+            # #     continue
 
-            im_name_all, kp_preds_all, kp_scores_all = st.get_valid_skeletons(
-                skeleton_folder, in_skeleton_list=None, is_savejson=True)
-            # st.vis_skeleton(in_clip_folder, skeleton_folder, 'None.json',
-            #     im_name_all, kp_preds_all, kp_scores_all, imglist=None,
-            #     result_labels=None, is_save=True, is_vis=True, thres=0.3)
+            # if act == 'others' and sub_id % 4 != 0:
+            #     continue
+
+            # print(act, sub)
+
+            # in_clip_folder = base_in_clip_folder + sub
+            # skeleton_folder = base_skeleton_folder + sub
+            # out_clip_folder = base_out_clip_folder + act + '_' + sub
+
+            # im_name_all, kp_preds_all, kp_scores_all = st.get_valid_skeletons(
+            #     skeleton_folder, in_skeleton_list=None, is_savejson=True)
+            # # st.vis_skeleton(in_clip_folder, skeleton_folder, 'None.json',
+            # #     im_name_all, kp_preds_all, kp_scores_all, imglist=None,
+            # #     result_labels=None, is_save=True, is_vis=True, thres=0.3)
+            # # st.get_hand_clip(in_clip_folder, skeleton_folder, out_clip_folder, 'None.json',
+            # #     im_name_all, kp_preds_all, kp_scores_all, imglist=None,
+            # #     is_save=True, is_vis=True, is_static_BG=is_static_BG, is_labeled=is_labeled, 
+            # #     is_heatmap=False)
             # st.get_hand_clip(in_clip_folder, skeleton_folder, out_clip_folder, 'None.json',
             #     im_name_all, kp_preds_all, kp_scores_all, imglist=None,
-            #     is_save=True, is_vis=True, is_static_BG=is_static_BG, is_labeled=is_labeled, 
-            #     is_heatmap=False)
-            st.get_hand_clip(in_clip_folder, skeleton_folder, out_clip_folder, 'None.json',
-                im_name_all, kp_preds_all, kp_scores_all, imglist=None,
-                is_save=True, is_vis=False, is_static_BG=is_static_BG, is_labeled=is_labeled, 
-                is_heatmap=True)
+            #     is_save=True, is_vis=False, is_static_BG=is_static_BG, is_labeled=is_labeled, 
+            #     is_heatmap=True)
+
 
 
 if __name__ == "__main__":
-
-    # video_to_images()
+    
+    None
     # create_clip()
-
-    clip_folder = '/media/qcxu/qcxuDisk/Dataset/scratch_dataset/hand_static_BG/'
-    TrainTest_folder = '/media/qcxu/qcxuDisk/Dataset/scratch_dataset/TrainTestlist/hand_static_BG/'
-    create_TrainTestlist(clip_folder, TrainTest_folder, train_test_rate=15, class_sample_rate=[5, 1, 1])
-   
-    # test()

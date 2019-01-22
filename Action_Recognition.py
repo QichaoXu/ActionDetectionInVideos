@@ -146,6 +146,7 @@ class Action_Recognition:
         for i, label in enumerate(labels):
             result_labels.append([label[0], probs[i]])
 
+        print(result_labels)
         return result_labels
 
     def runCAM(self, out_image_name, clip, heatmap=None):
@@ -265,8 +266,7 @@ class Action_Recognition:
 
 
 
-if __name__ == '__main__':
-    
+def get_ClassAvtivationMap():
     is_heatmap = False
 
     T = 30
@@ -304,4 +304,53 @@ if __name__ == '__main__':
         result_labels = reg.runCAM(out_image_name, [clip], [heatmap])
     else:
         result_labels = reg.runCAM(out_image_name, [clip])
-    print(result_labels)
+
+
+def run_on_clip(base_folder):
+    is_heatmap = False
+
+    T = 30
+    if is_heatmap:
+        reg_model_file = 'results-scratch-18-static_BG-30-skeleton/save_200.pth'
+        model_type = 'resnet_skeleton'
+    else:
+        reg_model_file = 'results-scratch-18-static_BG-30-iter/save_200.pth'
+        model_type = 'resnet'
+
+    reg = Action_Recognition(reg_model_file, sample_duration=T, model_type=model_type, cuda_id=0)
+
+    clip = []
+    heatmap = []
+
+    for i in range(5, T+5):
+        image_name = 'image_{:05d}.jpg'.format(i)
+        path = os.path.join(base_folder, image_name)
+        img = cv2.imread(path)
+        image = Image.fromarray(cv2.cvtColor(img,cv2.COLOR_BGR2RGB))  
+        clip.append(image)
+
+        # image_name = 'image_{:05d}_heatmap.jpg'.format(i)
+        # path = os.path.join(base_folder, image_name)
+        # img = cv2.imread(path)
+        # image = Image.fromarray(img[:, :, 0])  
+        # heatmap.append(image)
+
+    ## test random crop
+    # from random import randint
+    for i in range(2, 15, 10):
+        for j in range(2, 15, 10):
+            for k in range(2, 15, 10):
+                for l in range(2, 25, 3):
+
+                    print(i, j, k, l)
+                    clip_crop = []
+                    for c in clip:
+                        clip_crop.append(c.crop((i, j, c.size[0]-k, c.size[1]-l)))
+                    reg.run([clip_crop])
+
+
+
+if __name__ == '__main__':
+    
+    base_folder = '/media/qcxu/qcxuDisk/Dataset/scratch_dataset/hand_static_BG/scratch/scratch_Video_35_3_1_1'
+    run_on_clip(base_folder)

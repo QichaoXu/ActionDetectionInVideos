@@ -218,12 +218,54 @@ class Scale(object):
     def randomize_parameters(self):
         pass
 
+class ScaleQC(object):
+    """Rescale the input PIL.Image to the given size.
+    Args:
+        size (sequence or int): Desired output size. If size is a sequence like
+            (w, h), output size will be matched to this. If size is an int,
+            larger edge (different fro Scale) of the image will be matched to this number.
+            i.e, if height > width, then image will be rescaled to
+            (size * height / width, size)
+        interpolation (int, optional): Desired interpolation. Default is
+            ``PIL.Image.BILINEAR``
+    """
+
+    def __init__(self, size, interpolation=Image.BILINEAR):
+        assert isinstance(size, int) or (isinstance(size, collections.Iterable) and len(size) == 2)
+        self.size = size
+        self.interpolation = interpolation
+
+    def __call__(self, img):
+        """
+        Args:
+            img (PIL.Image): Image to be scaled.
+        Returns:
+            PIL.Image: Rescaled image.
+        """
+        if isinstance(self.size, int):
+            w, h = img.size
+            if (w <= h and w == self.size) or (h <= w and h == self.size):
+                return img
+            if w > h: ## This is where ScaleQC different from Scales
+                ow = self.size
+                oh = int(self.size * h / w)
+                return img.resize((ow, oh), self.interpolation)
+            else:
+                oh = self.size
+                ow = int(self.size * w / h)
+                return img.resize((ow, oh), self.interpolation)
+        else:
+            return img.resize(self.size, self.interpolation)
+
+    def randomize_parameters(self):
+        pass
+
 
 class CenterCrop(object):
     """Crops the given PIL.Image at the center.
     Args:
         size (sequence or int): Desired output size of the crop. If size is an
-            int instead of sequence like (h, w), a square crop (size, size) is
+            int instead of sequence like (h, w), a square crop or expand (size, size) is
             made.
     """
 
@@ -244,7 +286,10 @@ class CenterCrop(object):
         th, tw = self.size
         x1 = int(round((w - tw) / 2.))
         y1 = int(round((h - th) / 2.))
-        return img.crop((x1, y1, x1 + tw, y1 + th))
+
+        img = img.crop((x1, y1, x1 + tw, y1 + th))
+        # img.show()
+        return img
 
     def randomize_parameters(self):
         pass
@@ -293,7 +338,6 @@ class CornerCrop(object):
             y2 = image_height
 
         img = img.crop((x1, y1, x2, y2))
-
         return img
 
     def randomize_parameters(self):
@@ -315,6 +359,7 @@ class RandomHorizontalFlip(object):
         """
         if self.p < 0.5:
             return img.transpose(Image.FLIP_LEFT_RIGHT)
+
         return img
 
     def randomize_parameters(self):
