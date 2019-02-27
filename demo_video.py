@@ -7,13 +7,15 @@ import cv2
 import time
 
 
-def demo_video(is_save_avi=False, is_static_BG=True, is_heatmap=False):
+def demo_video(is_save_avi=False, is_static_BG=True):
+
+    is_heatmap = True
 
     T = 30
     if is_heatmap:
-        reg_model_file = 'results-scratch-18-static_BG-30-skeleton/save_200.pth'
+        reg_model_file = 'results-scratch-18-static_BG-30-skeleton-concatenate-iter6/save_300.pth'
         model_type = 'resnet_skeleton'
-        thres = 0.5
+        thres = 0.8
     else:
         reg_model_file = 'results-scratch-18-static_BG-30-iter5/save_200.pth'
         model_type = 'resnet'
@@ -21,16 +23,19 @@ def demo_video(is_save_avi=False, is_static_BG=True, is_heatmap=False):
 
     skeleton_opt = 'Alphapose' #'Alphapose' #'Openpose'
 
-    det = Detection(reg_model_file, model_type, skeleton_opt, cuda_id_list=[0,1],
-        sample_duration=T, sample_rate=1, is_static_BG=True, is_heatmap=False, thres=thres)
+    det = Detection(reg_model_file, model_type, skeleton_opt, cuda_id_list=[1,0],
+        sample_duration=T, sample_rate=1, is_static_BG=True, is_heatmap=is_heatmap, thres=thres)
 
-    # video_path = '/media/qcxu/qcxuDisk/Dataset/scratch_dataset/videos_test/'
+    # video_path = '/media/qcxu/qcxuDisk/Dataset/scratch_dataset/video_scratch/'
     video_path = '/media/qcxu/qcxuDisk/windows_datasets_all/videos_test'
     # video_name = '192.168.1.102_01_20190117204506847.mp4'
-    out_path = '/media/qcxu/qcxuDisk/Dataset/scratch_dataset/videos_test/result_0.2_hand_0.5'
+    out_path = '/media/qcxu/qcxuDisk/Dataset/scratch_dataset/videos_test/result_all_hand_concatenate'
     for video_name in os.listdir(video_path):
         if not '.mp4' in video_name and not '.webm' in video_name and not '.avi' in video_name:
             continue
+
+        # if video_name != '2019-01-22-192445.webm':
+        #     continue
     
         input_video_name = os.path.join(video_path, video_name)
         print('\nreading video from file ' + input_video_name + '\n')
@@ -73,7 +78,7 @@ def demo_video(is_save_avi=False, is_static_BG=True, is_heatmap=False):
                 imglist.append(frame)
                 if frame_id == T:
                     frame_id = 0
-                    img_out_all = det.run(imglist)
+                    img_out_all = det.run(imglist, out_path+str(frame_show_id))
                     imglist = []
                 else:
                     if not is_save_avi or img_out_all is None:

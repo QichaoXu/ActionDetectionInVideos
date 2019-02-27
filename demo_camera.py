@@ -3,7 +3,6 @@ from multiprocessing import Queue
 from DetectionMultiThreads import DetectionMultiThreads
 
 import os
-import sys
 import cv2
 import numpy as np
 import time
@@ -29,7 +28,9 @@ def resize_fixed_ratio(img, target_height, target_width):
 def demo_camera(is_save_avi=False, is_static_BG=True, is_heatmap=False):
 
     T = 30
+    is_heatmap = True
     if is_heatmap:
+        # reg_model_file = 'results-scratch-18-static_BG-30-skeleton/save_200.pth'
         reg_model_file = 'results-scratch-18-static_BG-30-skeleton/save_200.pth'
         model_type = 'resnet_skeleton'
         thres = 0.5
@@ -177,4 +178,4 @@ def demo_camera(is_save_avi=False, is_static_BG=True, is_heatmap=False):
 
 if __name__ == "__main__":
 
-    demo_camera(is_save_avi=True, is_static_BG=True, is_heatmap=False)
+    demo_camera(is_save_avi=True, is_static_BG=True)

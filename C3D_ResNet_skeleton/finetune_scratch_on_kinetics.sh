@@ -12,6 +12,6 @@ base_folder=/media/qcxu/qcxuDisk/Dataset/scratch_dataset
 python main_train_on_video.py --root_path ./data \
 --video_path ${base_folder}/hand_static_BG \
 --annotation_path ${base_folder}/TrainTestlist/hand_static_BG/ucf101_01.json \
---result_path results-scratch-18-static_BG-30-skeleton-concatenate --sample_duration 30 --dataset ucf101 --n_classes 400 --n_finetune_classes 3 \
---pretrain_path models/resnet-18-kinetics.pth --ft_begin_index 3 \
+--result_path results-scratch-18-static_BG-30-skeleton-concatenate-iter6 --sample_duration 30 --dataset ucf101 --n_classes 400 --n_finetune_classes 3 \
+--pretrain_path models/resnet-18-kinetics.pth --ft_begin_index 3 --n_epochs 300 \
 --model resnet_skeleton --model_depth 18 --resnet_shortcut A --batch_size 25 --n_threads 1 --checkpoint 20

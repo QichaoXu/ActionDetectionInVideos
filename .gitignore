@@ -14,7 +14,7 @@ examples/res
 *.h5
 *.zip
 *.weights
-
+*.jpg
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

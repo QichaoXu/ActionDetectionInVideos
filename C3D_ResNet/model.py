@@ -227,7 +227,7 @@ def generate_model(opt):
                 pretrained_dict = pretrain['state_dict']
                 model_dict = model.state_dict()
 
-                pretrained_dict = {k: v for k, v in pretrained_dict.items() if k in model_dict}
+                pretrained_dict = {k: v for k, v in pretrained_dict.items() if k in model_dict and 'fc' not in k} ## for concatenate
                 model_dict.update(pretrained_dict)
                 model.load_state_dict(model_dict)
             else:

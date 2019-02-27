@@ -58,7 +58,9 @@ class Detection:
             is_heatmap=self.is_heatmap)
         self.time_st += (time.time() - time1)
 
-        # prepare hand clip for action recognition
+        result_labels = None
+
+        ## prepare hand clip for action recognition
         time1 = time.time()
         empty_list = []
         clip_PIL_batch = []
@@ -73,7 +75,7 @@ class Detection:
                 heatmap_PIL = [Image.fromarray(img[:, :, 0]) for img in heatmap_all[i]]
                 heatmap_PIL_batch.append(heatmap_PIL)
 
-        # run action recornition
+        ## run action recornition
         if len(clip_PIL_batch) == 0:
             result_labels = [0, [0.0, 0.0, 0.0]]
         else:
@@ -86,7 +88,7 @@ class Detection:
 
         self.time_reg += (time.time() - time1)
 
-        # visualize result
+        ## visualize result
         time1 = time.time()
         img_out_all, _, _, _ = self.st.vis_skeleton('None', 'None', 'None.json',
             im_name_all, kp_preds_all, kp_scores_all, imglist,
@@ -109,38 +111,35 @@ class Detection:
         print('time_visualise:', '{:.4f}'.format(self.time_vis), '{:.4f}'.format(self.time_vis / time_total))
 
 
-# def extract_hand_clip_from_clip_folders():
-    
-#     T = 48
+def extract_hand_clip_from_clip_folders():
 
-#     skeleton_opt = 'Alphapose' # 'MSRA'  # 'Alphapose'  # 'Openpose' # 'TFOpenpose'
+    skeleton_opt = 'Alphapose' # 'MSRA'  # 'Alphapose'  # 'Openpose' # 'TFOpenpose'
 
-#     reg_model_file = 'results-scratch-18/save_200.pth'
-#     detection = Detection(reg_model_file, 'skeleton', skeleton_opt=skeleton_opt, cuda_id_list=[0,1],
-#         sample_duration=T, sample_rate=1, is_static_BG=True, is_heatmap=True, thres=0.5)
+    reg_model_file = 'results-scratch-18/save_200.pth'
+    detection = Detection(reg_model_file, 'skeleton', skeleton_opt=skeleton_opt, cuda_id_list=[0,1],
+        sample_duration=30, sample_rate=1, is_static_BG=True, is_heatmap=True, thres=0.5)
 
-#     act = 'scratch'
-#     base_folder = '/media/qcxu/qcxuDisk/Dataset/scratch_dataset/video_scratch/image_scratch/'
-#     dst_folder = '/media/qcxu/qcxuDisk/Dataset/scratch_dataset/video_scratch/clip_scratch/'
-#     for sub in os.listdir(base_folder):
-#         sub_folder = os.path.join(base_folder, sub)
-#         image_name_list = [img_name for img_name in os.listdir(sub_folder) if img_name.endswith('.jpg')]
-#         N = len(image_name_list)
+    act = 'scratch'
+    base_folder = '/media/qcxu/qcxuDisk/Dataset/scratch_dataset/video_scratch/image_scratch/'
+    dst_folder = '/media/qcxu/qcxuDisk/Dataset/scratch_dataset/video_scratch/clip_scratch/'
+    for sub in os.listdir(base_folder):
+        sub_folder = os.path.join(base_folder, sub)
+        image_name_list = [img_name for img_name in os.listdir(sub_folder) if img_name.endswith('.jpg')]
+        N = len(image_name_list)
 
-#         for i in range( N // T)
-#         imglist = []
-#         for j in range(N):
-#             img_name = os.path.join(sub_folder, 'image_{:05d}.jpg'.format(j+1))
-#             imglist.append(cv2.imread(img_name))
+        imglist = []
+        for j in range(N):
+            img_name = os.path.join(sub_folder, 'image_{:05d}.jpg'.format(j+1))
+            imglist.append(cv2.imread(img_name))
 
-#         out_clip_folder = os.path.join(dst_folder, act+'_'+sub)
-#         print(sub, N, out_clip_folder)
-#         detection.run(imglist, out_clip_folder)
+        out_clip_folder = os.path.join(dst_folder, act+'_'+sub)
+        print(sub, N, out_clip_folder)
+        detection.run(imglist, out_clip_folder)
 
-#     detection.print_runtime()
+    detection.print_runtime()
 
 
-def extract_hand_clip_from_image_folders():
+def extract_hand_clip_from_whole_image_folders():
     T = 48
     skeleton_opt = 'Alphapose' # 'MSRA'  # 'Alphapose'  # 'Openpose' # 'TFOpenpose'
 
@@ -148,8 +147,8 @@ def extract_hand_clip_from_image_folders():
     detection = Detection(reg_model_file, 'skeleton', skeleton_opt=skeleton_opt, cuda_id_list=[1,1],
         sample_duration=T, sample_rate=1, is_static_BG=True, is_heatmap=True, thres=0.5)
 
-    base_folder = '/media/qcxu/qcxuDisk/Dataset/scratch_dataset/video_normal/image_normal/'
-    dst_folder = '/media/qcxu/qcxuDisk/Dataset/scratch_dataset/video_normal/clip_normal/'
+    base_folder = '/media/qcxu/qcxuDisk/Dataset/scratch_dataset/video_scratch/image_scratch/'
+    dst_folder = '/media/qcxu/qcxuDisk/Dataset/scratch_dataset/video_scratch/clip_scratch/'
     for sub in os.listdir(base_folder):
         sub_folder = os.path.join(base_folder, sub)
         image_name_list = [img_name for img_name in os.listdir(sub_folder) if img_name.endswith('.jpg')]
@@ -174,4 +173,4 @@ if __name__ == "__main__":
     # None
     # test()
     # extract_hand_clip_from_clip_folders()
-    extract_hand_clip_from_image_folders()
+    extract_hand_clip_from_whole_image_folders()

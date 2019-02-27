@@ -71,6 +71,7 @@ if __name__ == '__main__':
         #     RandomHorizontalFlip(),
         #     ToTensor(opt.norm_value), norm_method
         # ])
+
         spatial_transform = Compose([
             ScaleQC(opt.sample_size),
             CenterCrop(opt.sample_size),
@@ -79,14 +80,15 @@ if __name__ == '__main__':
         ])
         temporal_transform = TemporalRandomCrop(opt.sample_duration)
         target_transform = ClassLabel()
-        training_data = get_training_set(opt, spatial_transform,
-                                         temporal_transform, target_transform)
-        train_loader = torch.utils.data.DataLoader(
-            training_data,
-            batch_size=opt.batch_size,
-            shuffle=True,
-            num_workers=opt.n_threads,
-            pin_memory=True)
+        # training_data = get_training_set(opt, spatial_transform,
+        #                                  temporal_transform, target_transform)
+        # train_loader = torch.utils.data.DataLoader(
+        #     training_data,
+        #     batch_size=opt.batch_size,
+        #     shuffle=True,
+        #     num_workers=opt.n_threads,
+        #     pin_memory=True)
+
         train_logger = Logger(
             os.path.join(opt.result_path, 'train.log'),
             ['epoch', 'loss', 'acc', 'lr'])
@@ -139,8 +141,20 @@ if __name__ == '__main__':
             optimizer.load_state_dict(checkpoint['optimizer'])
 
     print('run')
-    for i in range(opt.begin_epoch, opt.n_epochs + 1):
+    for i in range(opt.begin_epoch, opt.n_epochs + 1): # 1-301 // 10 trainlist
         if not opt.no_train:
+
+            split_index = (i-1) % 6
+            opt.annotation_path = os.path.join(opt.root_path, opt.annotation_path.split('ucf101')[0], 'ucf101_0{}.json'.format(split_index))
+            training_data = get_training_set(opt, spatial_transform,
+                                             temporal_transform, target_transform)
+            train_loader = torch.utils.data.DataLoader(
+                training_data,
+                batch_size=opt.batch_size,
+                shuffle=True,
+                num_workers=opt.n_threads,
+                pin_memory=True)
+
             train_epoch(i, train_loader, model, criterion, optimizer, opt,
                         train_logger, train_batch_logger)
         if not opt.no_val:

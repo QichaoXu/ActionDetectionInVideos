@@ -259,9 +259,9 @@ class skeleton_tools:
             return
 
         img_out_all = []
-        prob_out_all = []
-        bbox_hand_out_all = []
-        bbox_human_out_all = []
+        prob_out_all = None
+        bbox_hand_out_all = None
+        bbox_human_out_all = None
         for i, im_name in enumerate(im_name_all):
             if imglist is None:
                 # print(os.path.join(in_clip_folder, im_name))
@@ -290,11 +290,11 @@ class skeleton_tools:
                 cv2.imwrite(os.path.join(vis_out_folder, im_name), img_out)
             else:
                 img_out_all.append(img_out)
-                bbox_hand_out_all.append(bbox_hand_out)
-                bbox_human_out_all.append(bbox_human_out)
-                prob_out_all.append(prob_out)
 
-        return img_out_all, prob_out_all[0], bbox_hand_out_all[0], bbox_human_out_all[0]
+                if i == 0:
+                    prob_out_all, bbox_hand_out_all, bbox_human_out_all = prob_out, bbox_hand_out, bbox_human_out
+
+        return img_out_all, prob_out_all, bbox_hand_out_all, bbox_human_out_all
 
     def __multi_moving_average(self, X, window_size, times):
         for t in range(times):
@@ -452,7 +452,23 @@ class skeleton_tools:
         target[target > 1.0] = 1.0
         target *= 255
         target = target.astype(np.uint8)
-        return target[:, :, np.newaxis]
+        target = target[:, :, np.newaxis]
+
+
+        ## plot line of hand
+        for joint_pair in [[5,7], [7,9], [6,8], [8,10]]:
+            start_xy = (joints[2*joint_pair[0]], joints[2*joint_pair[0]+1])
+            end_xy = (joints[2*joint_pair[1]], joints[2*joint_pair[1]+1])
+            cv2.line(target, start_xy, end_xy, 255, sigma)
+
+        ## plot line of body
+        for joint_pair in [[5,11], [6,12], [5,6], [11,12]]:
+            start_xy = (joints[2*joint_pair[0]], joints[2*joint_pair[0]+1])
+            end_xy = (joints[2*joint_pair[1]], joints[2*joint_pair[1]+1])
+            
+            cv2.line(target, start_xy, end_xy, 255, sigma//2)
+
+        return target
 
     def get_hand_clip(self, in_clip_folder, out_clip_folder, skeleton_folder, json_file_name, 
                 im_name_all, kp_preds_all, kp_scores_all, imglist,
@@ -565,14 +581,14 @@ def create_clip():
 
     base_folder = '/media/qcxu/qcxuDisk/Dataset/scratch_dataset/'
     __action__ = ['others', 'pick', 'scratch']
-    bad_others_list = ['_'.join(line.split('_')[1:5]) for line in open(os.path.join(base_folder, 
-        'bad_others', 'bad_others.txt'), 'r')]
+    # bad_others_list = ['_'.join(line.split('_')[1:5]) for line in open(os.path.join(base_folder, 
+    #     'bad_others', 'bad_others.txt'), 'r')]
     # print(bad_others_list)
 
     # base_folder = '/media/qcxu/qcxuDisk/windows_datasets_all/clips/'
     # __action__ = ['normal', 'clean', 'pick', 'scratch']
 
-    # st = skeleton_tools()
+    st = skeleton_tools()
 
     for act in __action__:
 
@@ -580,54 +596,51 @@ def create_clip():
         if act == 'others':
             is_labeled = False
 
-        if act != 'others':
-            continue
-
-        base_in_clip_folder = base_folder + act + '/skeletons/'
+        base_in_clip_folder = base_folder + act + '/clips/'
         base_skeleton_folder = base_folder + act + '/skeletons/'
         base_out_clip_folder = base_folder + ske_folder + '/' + act + '/'
 
         for sub_id, sub in enumerate(os.listdir(base_in_clip_folder)):
 
-            # print(sub)
-            if sub in bad_others_list:
-                print('bad_others_list', sub)
-                # print(os.path.join(base_in_clip_folder, sub), os.path.join(base_folder, 'bad_others', sub))
-                os.rename(os.path.join(base_in_clip_folder, sub), os.path.join(base_folder, 'bad_others', sub))
-                continue
+            # if sub in bad_others_list:
+            #     print('bad_others_list', sub)
+            #     # print(os.path.join(base_in_clip_folder, sub), os.path.join(base_folder, 'bad_others', sub))
+            #     os.rename(os.path.join(base_in_clip_folder, sub), os.path.join(base_folder, 'bad_others', sub))
+            #     continue
 
-            # # if act != 'pick' or sub[:8] != 'Video_12':
-            # #     continue
+            # if act != 'pick' or sub[:8] != 'Video_12':
+            #     continue
 
-            # # if act == 'others':# or sub != 'Video_11_1_1':
-            # #     continue
+            # if not (act == 'scratch' and sub == 'Video_11_1_1'):
+            #    continue
 
             # if act == 'others' and sub_id % 4 != 0:
             #     continue
 
-            # print(act, sub)
+            in_clip_folder = base_in_clip_folder + sub
+            skeleton_folder = base_skeleton_folder + sub
+            out_clip_folder = base_out_clip_folder + act + '_' + sub
 
-            # in_clip_folder = base_in_clip_folder + sub
-            # skeleton_folder = base_skeleton_folder + sub
-            # out_clip_folder = base_out_clip_folder + act + '_' + sub
+            print(act, sub)
+            print(out_clip_folder)
 
-            # im_name_all, kp_preds_all, kp_scores_all = st.get_valid_skeletons(
-            #     skeleton_folder, in_skeleton_list=None, is_savejson=True)
-            # # st.vis_skeleton(in_clip_folder, skeleton_folder, 'None.json',
-            # #     im_name_all, kp_preds_all, kp_scores_all, imglist=None,
-            # #     result_labels=None, is_save=True, is_vis=True, thres=0.3)
-            # # st.get_hand_clip(in_clip_folder, skeleton_folder, out_clip_folder, 'None.json',
-            # #     im_name_all, kp_preds_all, kp_scores_all, imglist=None,
-            # #     is_save=True, is_vis=True, is_static_BG=is_static_BG, is_labeled=is_labeled, 
-            # #     is_heatmap=False)
+            im_name_all, kp_preds_all, kp_scores_all = st.get_valid_skeletons(
+                skeleton_folder, in_skeleton_list=None, is_savejson=True)
+            # st.vis_skeleton(in_clip_folder, skeleton_folder, 'None.json',
+            #     im_name_all, kp_preds_all, kp_scores_all, imglist=None,
+            #     result_labels=None, is_save=True, is_vis=True, thres=0.3)
             # st.get_hand_clip(in_clip_folder, skeleton_folder, out_clip_folder, 'None.json',
             #     im_name_all, kp_preds_all, kp_scores_all, imglist=None,
-            #     is_save=True, is_vis=False, is_static_BG=is_static_BG, is_labeled=is_labeled, 
-            #     is_heatmap=True)
+            #     is_save=True, is_vis=True, is_static_BG=is_static_BG, is_labeled=is_labeled, 
+            #     is_heatmap=False)
+            st.get_hand_clip(in_clip_folder, out_clip_folder, skeleton_folder, 'None.json',
+                im_name_all, kp_preds_all, kp_scores_all, imglist=None,
+                is_save=True, is_vis=False, is_static_BG=is_static_BG, is_labeled=is_labeled, 
+                is_heatmap=True)
 
 
 
 if __name__ == "__main__":
     
-    None
-    # create_clip()
+    #None
+    create_clip()

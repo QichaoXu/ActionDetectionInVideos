@@ -103,9 +103,6 @@ class Action_Recognition:
 
         # prepare dataset
         self.spatial_transform.randomize_parameters()
-        # clip = [self.spatial_transform(img) for img in clip_batch for clip_batch in clip]
-        # clip = torch.stack(clip, 0).permute(1, 0, 2, 3)
-        # clip = clip.unsqueeze(0)
         clip_all = []
         for clip_batch in clip:
             clip_all.append(torch.stack([self.spatial_transform(img) for img in clip_batch], 0))
@@ -117,9 +114,6 @@ class Action_Recognition:
             inputs = Variable(clip.cuda(self.opt.cuda_id))
 
         if self.opt.model == 'resnet_skeleton':
-            # heatmap = [self.spatial_transform(img) for img in heatmap for clip_batch in clip]
-            # heatmap = torch.stack(heatmap, 0).permute(1, 0, 2, 3)
-            # heatmap = heatmap.unsqueeze(0)
             heatmap_all = []
             for heatmap_batch in heatmap:
                 heatmap_all.append(torch.stack([self.spatial_transform(img) for img in heatmap_batch], 0))
@@ -137,8 +131,6 @@ class Action_Recognition:
             outputs = self.model(inputs)
         outputs = F.softmax(outputs, dim=1)
 
-        # sorted_scores, locs = torch.topk(outputs, k=3)
-        # return int(locs[0][0]), outputs[0].detach().cpu().numpy().tolist()
         sorted_scores, locs = torch.topk(outputs, k=1, dim=1)
         labels = locs.detach().cpu().numpy().tolist()
         probs = outputs.detach().cpu().numpy().tolist()
@@ -149,7 +141,7 @@ class Action_Recognition:
         print(result_labels)
         return result_labels
 
-    def runCAM(self, out_image_name, clip, heatmap=None):
+    def runCAM(self, out_image_name, clip, heatmap=None, is_heatmap=False):
 
         # hook the feature extractor
         finalconv_name = 'layer4'
@@ -187,9 +179,6 @@ class Action_Recognition:
 
         # prepare dataset
         self.spatial_transform.randomize_parameters()
-        # clip = [self.spatial_transform(img) for img in clip_batch for clip_batch in clip]
-        # clip = torch.stack(clip, 0).permute(1, 0, 2, 3)
-        # clip = clip.unsqueeze(0)
         clip_all = []
         for clip_batch in clip:
             clip_all.append(torch.stack([self.spatial_transform(img) for img in clip_batch], 0))
@@ -201,9 +190,6 @@ class Action_Recognition:
             inputs = Variable(clip.cuda(self.opt.cuda_id))
 
         if self.opt.model == 'resnet_skeleton':
-            # heatmap = [self.spatial_transform(img) for img in heatmap for clip_batch in clip]
-            # heatmap = torch.stack(heatmap, 0).permute(1, 0, 2, 3)
-            # heatmap = heatmap.unsqueeze(0)
             heatmap_all = []
             for heatmap_batch in heatmap:
                 heatmap_all.append(torch.stack([self.spatial_transform(img) for img in heatmap_batch], 0))
@@ -233,6 +219,7 @@ class Action_Recognition:
         print(features_blobs[0].shape)
         features_blobs[0] = np.mean(features_blobs[0], axis=2)
         print(features_blobs[0].shape)
+        # weight_softmax = weight_softmax[:, 512:]
         print(weight_softmax.shape)
         print(idx[0])
         CAMs = returnCAM(features_blobs[0], weight_softmax, [idx[0]])
@@ -267,21 +254,22 @@ class Action_Recognition:
 
 
 def get_ClassAvtivationMap():
-    is_heatmap = False
+    is_heatmap = True
 
     T = 30
     if is_heatmap:
-        reg_model_file = 'results-scratch-18-static_BG-30-skeleton/save_200.pth'
+        reg_model_file = 'results-scratch-18-static_BG-30-skeleton-concatenate/save_200.pth'
         model_type = 'resnet_skeleton'
     else:
-        reg_model_file = 'results-scratch-18-static_BG-30/save_200.pth'
+        reg_model_file = 'results-scratch-18-static_BG-30-iter5/save_200.pth'
         model_type = 'resnet'
 
     reg = Action_Recognition(reg_model_file, sample_duration=T, model_type=model_type, cuda_id=0)
 
     clip = []
     heatmap = []
-    base_folder = '/media/qcxu/qcxuDisk/Dataset/scratch_dataset/hand_static_BG/scratch/scratch_Video_11_1_1_1'
+    #base_folder = '/media/qcxu/qcxuDisk/Dataset/scratch_dataset/hand_static_BG/scratch/scratch_Video_11_1_1_1'
+    base_folder = '/media/qcxu/qcxuDisk/Dataset/scratch_dataset/videos_test/result_0.2_hand_0.560_1'
     if is_heatmap:
         out_image_name = 'CAM-' + base_folder.split('/')[-1] + '.jpg'
     else:
@@ -294,14 +282,15 @@ def get_ClassAvtivationMap():
         image = Image.fromarray(cv2.cvtColor(img,cv2.COLOR_BGR2RGB))  
         clip.append(image)
 
-        image_name = 'image_{:05d}_heatmap.jpg'.format(i)
-        path = os.path.join(base_folder, image_name)
-        img = cv2.imread(path)
-        image = Image.fromarray(img[:, :, 0])  
-        heatmap.append(image)
+        if is_heatmap:
+            image_name = 'image_{:05d}_heatmap.jpg'.format(i)
+            path = os.path.join(base_folder, image_name)
+            img = cv2.imread(path)
+            image = Image.fromarray(img[:, :, 0])  
+            heatmap.append(image)
 
     if is_heatmap:
-        result_labels = reg.runCAM(out_image_name, [clip], [heatmap])
+        result_labels = reg.runCAM(out_image_name, [clip], [heatmap], is_heatmap)
     else:
         result_labels = reg.runCAM(out_image_name, [clip])
 
@@ -314,7 +303,7 @@ def run_on_clip(base_folder):
         reg_model_file = 'results-scratch-18-static_BG-30-skeleton/save_200.pth'
         model_type = 'resnet_skeleton'
     else:
-        reg_model_file = 'results-scratch-18-static_BG-30-iter/save_200.pth'
+        reg_model_file = 'results-scratch-18-static_BG-30-iter5/save_200.pth'
         model_type = 'resnet'
 
     reg = Action_Recognition(reg_model_file, sample_duration=T, model_type=model_type, cuda_id=0)
@@ -352,5 +341,7 @@ def run_on_clip(base_folder):
 
 if __name__ == '__main__':
     
-    base_folder = '/media/qcxu/qcxuDisk/Dataset/scratch_dataset/hand_static_BG/scratch/scratch_Video_35_3_1_1'
-    run_on_clip(base_folder)
+    get_ClassAvtivationMap()
+
+    # base_folder = '/media/qcxu/qcxuDisk/Dataset/scratch_dataset/hand_static_BG/scratch/scratch_Video_35_3_1_1'
+    # run_on_clip(base_folder)

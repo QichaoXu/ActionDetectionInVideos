@@ -74,6 +74,9 @@ class Alphapose_skeleton:
         self.pose_model.eval()
 
 
+    def __extend_wrist(self, Elbow_x, Wrist_x):
+        return Wrist_x + int((Wrist_x - Elbow_x) / 3)
+
     def run(self, folder_or_imglist, sample_rate):
         time_run_start = time.time()
 
@@ -136,6 +139,13 @@ class Alphapose_skeleton:
                     # if float(kp_scores[9]) < 0.2 and float(kp_scores[10]) < 0.2:
                     #     continue
 
+                    ## extend LWrist
+                    kp_preds[9, 0] = self.__extend_wrist(kp_preds[7, 0], kp_preds[9, 0])
+                    kp_preds[9, 1] = self.__extend_wrist(kp_preds[7, 1], kp_preds[9, 1])
+                    ## extend RWrist
+                    kp_preds[10, 0] = self.__extend_wrist(kp_preds[8, 0], kp_preds[10, 0])
+                    kp_preds[10, 1] = self.__extend_wrist(kp_preds[8, 1], kp_preds[10, 1])
+
                     for n in range(kp_scores.shape[0]):
                         skeleton_list[-1].append(int(kp_preds[n, 0]))
                         skeleton_list[-1].append(int(kp_preds[n, 1]))
@@ -153,6 +163,7 @@ class Alphapose_skeleton:
             os.mkdir(outputpath)
 
         out_file = open(os.path.join(outputpath, 'skeleton.txt'), 'w')
+        print(out_file)
         for skeleton in skeleton_list:
             out_file.write(' '.join(str(x) for x in skeleton))
             out_file.write('\n')
@@ -178,8 +189,8 @@ if __name__ == "__main__":
 
         for sub_id, sub in enumerate(os.listdir(base_in_clip_folder)):
 
-            if act != 'pick' or sub != 'Video_12_4_1':
-                continue
+            #if not (act == 'scratch' and sub == 'Video_24_12_2'):
+            #    continue
 
             in_clip_folder = base_in_clip_folder + sub
             skeleton_folder = base_skeleton_folder + sub
@@ -190,5 +201,6 @@ if __name__ == "__main__":
                     imglist.append(cv2.imread(os.path.join(in_clip_folder, im_name)))
 
             skeleton_list = skeleton_det.run(imglist, sample_rate=1)
-            # skeleton_det.save_skeleton(skeleton_list, skeleton_folder)
+            skeleton_det.save_skeleton(skeleton_list, skeleton_folder)
+
     print(time.time() - time1)
